@@ -1,5 +1,9 @@
+# backend/src/backend/main.py
 import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from dotenv import load_dotenv
+
 from backend.parser.pdf_parser import get_pdf_text
 from backend.extractors.openai_ext import extract_graph_data
 from backend.graph.builder import build_graph
@@ -7,42 +11,39 @@ from backend.graph.builder import build_graph
 # Load environment variables
 load_dotenv()
 
-def main():
-    # 1. Define the papers
-    pdf_files = ["papers/paper1.pdf", "papers/paper2.pdf"]
-    extractions = []
+# Initialize FastAPI app
+app = FastAPI(title="GraphRAG Literature Review API")
+
+class ProcessRequest(BaseModel):
+    pdf_path: str
+
+@app.get("/")
+def read_root():
+    return {"message": "GraphRAG API is running!"}
+
+@app.post("/extract")
+def extract_paper(request: ProcessRequest):
+    if not os.path.exists(request.pdf_path):
+        raise HTTPException(status_code=404, detail="PDF file not found")
     
-    print("🚀 Starting V1 GraphRAG Extraction...\n")
-    
-    # 2. Extract data
-    for pdf in pdf_files:
-        if not os.path.exists(pdf):
-            print(f"⚠️ Warning: {pdf} not found. Skipping.")
-            continue
-            
-        print(f"📄 Processing {pdf}...")
-        text = get_pdf_text(pdf)
+    try:
+        # 1. Get text
+        text = get_pdf_text(request.pdf_path)
         
-        result = extract_graph_data(text, os.path.basename(pdf))
-        extractions.append(result)
-        print(f"✅ Extracted {len(result.entities)} entities and {len(result.relationships)} relationships.\n")
-
-    if not extractions:
-        print("No papers found. Please add PDFs to the 'papers/' folder.")
-        return
-
-    # 3. Build Graph
-    print("🕸️ Building Knowledge Graph...")
-    G = build_graph(extractions)
-    
-    # 4. Print Results
-    print("\n--- 📊 GRAPH NODES ---")
-    for node, attrs in G.nodes(data=True):
-        print(f" - [{attrs['type']}] {node}")
+        # 2. Extract with LLM
+        result = extract_graph_data(text, os.path.basename(request.pdf_path))
         
-    print("\n--- 🔗 GRAPH EDGES ---")
-    for source, target, attrs in G.edges(data=True):
-        print(f" - {source} --({attrs['type']})--> {target}")
-
-if __name__ == "__main__":
-    main()
+        # 3. Build Graph
+        G = build_graph([result])
+        
+        # 4. Format for JSON response
+        nodes = [{"name": node, "type": attrs["type"]} for node, attrs in G.nodes(data=True)]
+        edges = [{"source": u, "target": v, "type": attrs["type"]} for u, v, attrs in G.edges(data=True)]
+        
+        return {
+            "paper_title": result.paper_title,
+            "nodes": nodes,
+            "edges": edges
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

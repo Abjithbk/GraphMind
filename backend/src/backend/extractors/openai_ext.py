@@ -1,13 +1,26 @@
 import os
+from pathlib import Path
 from openai import OpenAI
 from backend.models.schema import ExtractionResult
+from dotenv import load_dotenv
 
-# Initialize the OpenAI client
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Load .env
+dotenv_path = Path(__file__).parent.parent.parent.parent / ".env"
+load_dotenv(dotenv_path=dotenv_path)
+
+api_key = os.environ.get("GROQ_API_KEY")
+base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
+if not api_key:
+    raise ValueError("CRITICAL: GROQ_API_KEY not found in .env file!")
+
+# Initialize client pointing to Groq instead of OpenAI
+client = OpenAI(
+    api_key=api_key,
+    base_url=base_url
+)
 
 def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
-    """Sends text to OpenAI and returns structured graph data."""
-    
     prompt = f"""
     You are an expert academic research assistant. 
     Read the following text from a research paper. 
@@ -28,7 +41,7 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     """
 
     completion = client.beta.chat.completions.parse(
-        model="gpt-4o-mini", 
+        model="llama-3.3-70b-versatile", # Groq's excellent free model
         messages=[
             {"role": "system", "content": "You are an expert academic assistant that extracts structured knowledge graphs from text."},
             {"role": "user", "content": prompt},
