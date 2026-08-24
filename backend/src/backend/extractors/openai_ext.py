@@ -4,20 +4,25 @@ from openai import OpenAI
 from backend.models.schema import ExtractionResult
 from dotenv import load_dotenv
 
-# Load .env
+# 1. Load .env file
 dotenv_path = Path(__file__).parent.parent.parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
-api_key = os.environ.get("GROQ_API_KEY")
-base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+# 2. Get OpenRouter credentials
+api_key = os.environ.get("OPENROUTER_API_KEY")
+base_url = os.environ.get("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
 
 if not api_key:
-    raise ValueError("CRITICAL: GROQ_API_KEY not found in .env file!")
+    raise ValueError("CRITICAL: OPENROUTER_API_KEY not found in .env file!")
 
-# Initialize client pointing to Groq instead of OpenAI
+# 3. Initialize client pointing to OpenRouter
 client = OpenAI(
     api_key=api_key,
-    base_url=base_url
+    base_url=base_url,
+    default_headers={
+        "HTTP-Referer": "http://localhost:8000", # Required by OpenRouter
+        "X-Title": "GraphRAG Lit Review",       # Required by OpenRouter
+    }
 )
 
 def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
@@ -40,8 +45,9 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     {text[:12000]} 
     """
 
+    # 4. Call OpenRouter using the exact Qwen model string
     completion = client.beta.chat.completions.parse(
-        model="llama-3.3-70b-versatile", # Groq's excellent free model
+        model="qwen/qwen-2.5-72b-instruct", 
         messages=[
             {"role": "system", "content": "You are an expert academic assistant that extracts structured knowledge graphs from text."},
             {"role": "user", "content": prompt},
