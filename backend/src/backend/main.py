@@ -1,12 +1,12 @@
 # src/backend/main.py
 import os
-from typing import List
+from typing import List,Dict,Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from backend.parser.pdf_parser import get_pdf_text
-from backend.extractors.openai_ext import extract_graph_data
+from backend.extractors.openai_ext import extract_graph_data,chat_with_graph
 from backend.graph.builder import build_graph
 
 # Load environment variables
@@ -67,3 +67,18 @@ def extract_papers(request: ProcessRequest):
         "nodes": nodes,
         "edges": edges
     }
+
+class ChatRequest(BaseModel):
+    message: str
+    nodes: List[Dict[str, Any]]
+    edges: List[Dict[str, Any]]
+
+@app.post("/chat")
+def chat_with_assistant(request: ChatRequest):
+    try:
+        # Pass the current graph state to the LLM
+        graph_context = {"nodes": request.nodes, "edges": request.edges}
+        response = chat_with_graph(request.message, graph_context)
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

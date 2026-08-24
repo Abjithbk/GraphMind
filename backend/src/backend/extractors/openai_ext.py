@@ -56,3 +56,38 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     )
     
     return completion.choices[0].message.parsed
+
+def chat_with_graph(message:str,graph_context:dict) -> str:
+    """
+    Takes a user question and the current graph context, and returns an AI answer.
+    """
+    # Format the graph into a readable string for the LLM
+    nodes_str = "\n".join([f"- {n['name']} ({n['type']})" for n in graph_context.get('nodes', [])])
+    edges_str = "\n".join([f"- {e['source']} --({e['type']})-> {e['target']}" for e in graph_context.get('edges', [])])
+    
+    prompt = f"""
+    You are an expert academic research assistant. 
+    You have access to a Knowledge Graph extracted from research papers.
+    
+    Here is the current Knowledge Graph context:
+    NODES:
+    {nodes_str}
+    
+    EDGES (Relationships):
+    {edges_str}
+    
+    User Question: {message}
+    
+    Answer the question based ONLY on the provided graph context. If the graph doesn't contain the answer, say so. Keep the answer concise and academic.
+    """
+
+    completion = client.chat.completions.create(
+        model="qwen/qwen-2.5-72b-instruct",
+        messages=[
+            {"role": "system", "content": "You are a helpful research assistant."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+    )
+    
+    return completion.choices[0].message.content

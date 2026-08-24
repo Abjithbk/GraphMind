@@ -9,6 +9,12 @@ export interface ExtractionResponse {
   edges: { source: string; target: string; type: string }[];
 }
 
+export interface ChatRequest {
+  message: string;
+  nodes: { name: string; type: string }[];
+  edges: { source: string; target: string; type: string }[];
+}
+
 export async function extractGraph(pdfPaths: string[]): Promise<ExtractionResponse> {
   const response = await fetch(`${API_URL}/extract`, {
     method: 'POST',
@@ -24,4 +30,22 @@ export async function extractGraph(pdfPaths: string[]): Promise<ExtractionRespon
   }
 
   return response.json();
+}
+
+export async function chatWithGraph(data: ChatRequest): Promise<string> {
+  const response = await fetch(`${API_URL}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get chat response');
+  }
+
+  const result = await response.json();
+  return result.response;
 }
