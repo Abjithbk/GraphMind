@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from backend.parser.pdf_parser import get_pdf_text
+from fastapi.responses import StreamingResponse
 from backend.extractors.openai_ext import extract_graph_data,chat_with_graph
 from backend.graph.builder import build_graph
 
@@ -78,7 +79,12 @@ def chat_with_assistant(request: ChatRequest):
     try:
         # Pass the current graph state to the LLM
         graph_context = {"nodes": request.nodes, "edges": request.edges}
-        response = chat_with_graph(request.message, graph_context)
-        return {"response": response}
+        stream = chat_with_graph(request.message, graph_context)
+        def generate():
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
+        
+        return StreamingResponse(generate(),media_type='text/plain')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

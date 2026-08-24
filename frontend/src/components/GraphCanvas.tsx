@@ -1,30 +1,53 @@
 // src/components/GraphCanvas.tsx
 "use client";
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { 
-  ReactFlow, Background, Controls, MiniMap, addEdge, 
-  useNodesState, useEdgesState, BackgroundVariant 
+  ReactFlow, 
+  Background, 
+  Controls, 
+  MiniMap, 
+  addEdge, 
+  useNodesState, 
+  useEdgesState, 
+  BackgroundVariant,
+  ReactFlowProvider,
+  useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+
 import { CustomNode } from './CustomNode';
 import { useGraphStore } from '@/store/useGraphStore';
 import { Loader2 } from 'lucide-react';
 
 const nodeTypes = { custom: CustomNode };
 
-export function GraphCanvas() {
-  // 1. Get real data from the store
-  const { nodes: storeNodes, edges: storeEdges, isLoading } = useGraphStore();
+function GraphCanvasContent() {
+  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode } = useGraphStore();
+  const { fitView, setCenter } = useReactFlow(); // Now this works because of the Provider below
   
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
 
   // Sync store updates to React Flow
-  if (storeNodes.length !== nodes.length) {
-    setNodes(storeNodes);
-    setEdges(storeEdges);
-  }
+  useEffect(() => {
+    if (storeNodes.length !== nodes.length || storeNodes.length > 0) {
+      setNodes(storeNodes);
+      setEdges(storeEdges);
+      // Automatically fit the view when new nodes are loaded
+      setTimeout(() => fitView({ padding: 0.2, duration: 800 }), 100);
+    }
+  }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
+
+  // Zoom to the highlighted node when clicked in chat
+  useEffect(() => {
+    if (highlightedNode) {
+      const node = nodes.find(n => n.id === highlightedNode);
+      if (node) {
+        setCenter(node.position.x + 50, node.position.y + 50, { zoom: 1.5, duration: 800 });
+      }
+    }
+  }, [highlightedNode, nodes, setCenter]);
 
   const onConnect = useCallback(
     (params: any) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
@@ -55,10 +78,18 @@ export function GraphCanvas() {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#3f3f46" />
         <Controls className="!bg-card !border-border !rounded-lg !shadow-lg [&>button]:!bg-transparent [&>button]:!border-0 [&>button]:!text-foreground [&>button]:hover:!bg-muted" />
-        <MiniMap className="!bg-card !border-border !rounded-lg !shadow-lg" />
+        <MiniMap 
+          className="!bg-card !border-border !rounded-lg !shadow-lg"
+          nodeColor={(node) => {
+            if (node.data?.type === 'paper') return '#6366f1'; // Indigo
+            if (node.data?.type === 'method') return '#10b981'; // Emerald
+            if (node.data?.type === 'claim') return '#f59e0b'; // Amber
+            return '#71717a';
+          }}
+        />
       </ReactFlow>
 
-      {/* Legend (Remains the same) */}
+      {/* Legend */}
       <div className="absolute top-6 right-6 bg-card/80 backdrop-blur-md p-3 rounded-lg border border-border shadow-lg pointer-events-none">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Graph Legend</p>
         <div className="space-y-2">
@@ -68,6 +99,15 @@ export function GraphCanvas() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Wrap the content in the Provider
+export function GraphCanvas() {
+  return (
+    <ReactFlowProvider>
+      <GraphCanvasContent />
+    </ReactFlowProvider>
   );
 }
 

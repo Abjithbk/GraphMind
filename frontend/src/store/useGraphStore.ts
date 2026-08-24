@@ -14,12 +14,13 @@ interface GraphState {
   edges: Edge[];
   papers: Paper[];
   isLoading: boolean;
-  
+  highlightedNode:string|null;
   // Actions
   setGraph: (nodes: Node[], edges: Edge[]) => void;
   setPapers: (papers: Paper[]) => void;
   setLoading: (loading: boolean) => void;
   addPaper: (paper: Paper) => void;
+  setHighlightedNode: (nodeId:string|null) => void;
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -31,9 +32,11 @@ export const useGraphStore = create<GraphState>((set) => ({
     { id: '2', title: 'Graph RAG for Review', author: 'Microsoft Research', year: '2024', status: 'processed' },
   ],
   isLoading: false,
+  highlightedNode:null,
 
   setGraph: (nodes, edges) => set({ nodes, edges }),
   setPapers: (papers) => set({ papers }),
   setLoading: (loading) => set({ isLoading: loading }),
   addPaper: (paper) => set((state) => ({ papers: [...state.papers, paper] })),
+  setHighlightedNode: (nodeId) => set({highlightedNode:nodeId})
 }));

@@ -57,9 +57,10 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     
     return completion.choices[0].message.parsed
 
-def chat_with_graph(message:str,graph_context:dict) -> str:
+
+def chat_with_graph(message: str, graph_context: dict):
     """
-    Takes a user question and the current graph context, and returns an AI answer.
+    Takes a user question and the current graph context, and returns a STREAMING AI answer.
     """
     # Format the graph into a readable string for the LLM
     nodes_str = "\n".join([f"- {n['name']} ({n['type']})" for n in graph_context.get('nodes', [])])
@@ -78,9 +79,12 @@ def chat_with_graph(message:str,graph_context:dict) -> str:
     
     User Question: {message}
     
+    IMPORTANT: When you mention a specific node from the graph, wrap its EXACT name in square brackets. For example: 'The paper uses the [Transformer] method.'
+    
     Answer the question based ONLY on the provided graph context. If the graph doesn't contain the answer, say so. Keep the answer concise and academic.
     """
 
+    # ENABLE STREAMING HERE
     completion = client.chat.completions.create(
         model="qwen/qwen-2.5-72b-instruct",
         messages=[
@@ -88,6 +92,7 @@ def chat_with_graph(message:str,graph_context:dict) -> str:
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
+        stream=True  # <-- This makes it return a generator of tokens
     )
     
-    return completion.choices[0].message.content
+    return completion

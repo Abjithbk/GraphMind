@@ -32,7 +32,7 @@ export async function extractGraph(pdfPaths: string[]): Promise<ExtractionRespon
   return response.json();
 }
 
-export async function chatWithGraph(data: ChatRequest): Promise<string> {
+export async function chatWithGraph(data: ChatRequest,onToken:(token:string) => void ): Promise<void> {
   const response = await fetch(`${API_URL}/chat`, {
     method: 'POST',
     headers: {
@@ -46,6 +46,15 @@ export async function chatWithGraph(data: ChatRequest): Promise<string> {
     throw new Error(error.detail || 'Failed to get chat response');
   }
 
-  const result = await response.json();
-  return result.response;
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  if(reader) {
+    while(true) {
+      const {done,value} = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value,{stream:true});
+      onToken(chunk)
+    }
+  }
 }
