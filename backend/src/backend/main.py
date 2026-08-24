@@ -4,7 +4,7 @@ from typing import List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
-
+from fastapi.middleware.cors import CORSMiddleware
 from backend.parser.pdf_parser import get_pdf_text
 from backend.extractors.openai_ext import extract_graph_data
 from backend.graph.builder import build_graph
@@ -15,6 +15,13 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(title="GraphRAG Literature Review API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 # Update the request model to accept a LIST of PDF paths
 class ProcessRequest(BaseModel):
     pdf_paths: List[str]

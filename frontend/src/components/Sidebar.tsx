@@ -4,20 +4,43 @@
 import { useState } from "react";
 import { 
   Upload, Network, Library, MessageSquare, FolderOpen, 
-  Settings, User, CheckCircle2, MoreVertical 
+  Settings, User, CheckCircle2, MoreVertical, 
+  Loader2
 } from "lucide-react";
-
+import { useGraphStore } from "@/store/useGraphStore";
+import { extractGraph } from "@/lib/api";
+import { mapBackendToReactFlow } from "@/lib/graphMapper";
 export function Sidebar() {
-  const [papers] = useState([
-    { id: 1, title: "Attention Is All You Need", author: "Vaswani et al.", year: "2017" },
-    { id: 2, title: "Graph RAG for Review", author: "Microsoft Research", year: "2024" },
-    { id: 3, title: "LLM Architectures", author: "Meta AI", year: "2023" },
-    { id: 4, title: "Retriever Analysis", author: "DeepMind", year: "2022" },
-  ]);
+   const {setGraph,setLoading,isLoading} = useGraphStore();
+
+   const handleProcessFiles = async () => {
+
+    setLoading(true)
+    try {
+      const testPaths = [
+        "C:/Users/bkabj/Documents/lit-graphrag/backend/src/backend/papers/paper1.pdf", 
+        "C:/Users/bkabj/Documents/lit-graphrag/backend/src/backend/papers/paper2.pdf"
+      ];
+      // cal backend
+      const result = await extractGraph(testPaths)
+      //map to react flow format
+      const {nodes,edges} = mapBackendToReactFlow(result);
+
+      //update global states
+      setGraph(nodes,edges)
+    }
+    catch(error) {
+      console.error("Failed to extract graph:",error);
+    }
+    finally {
+      setLoading(false)
+    }
+
+   }
 
   return (
-    <aside className="w-80 border-r border-border bg-sidebar flex flex-col h-full">
-      {/* Logo & Brand */}
+     <aside className="w-80 border-r border-border bg-sidebar flex flex-col h-full">
+      {/* ... (Logo and Nav remain exactly the same) ... */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -30,7 +53,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="p-4 space-y-1">
         <NavItem icon={Library} label="Library" active />
         <NavItem icon={Network} label="Knowledge Graph" />
@@ -48,26 +70,35 @@ export function Sidebar() {
             <p className="text-sm font-medium text-foreground">Upload PDFs or URLs</p>
             <p className="text-xs text-muted-foreground mt-1">Drag & drop or click</p>
           </div>
-          <button className="w-full py-2 px-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md text-sm font-medium transition-colors">
-            Process Files
+          
+          {/* UPDATED BUTTON WITH LOADING STATE */}
+          <button 
+            onClick={handleProcessFiles}
+            disabled={isLoading}
+            className="w-full py-2 px-4 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Process Files"
+            )}
           </button>
         </div>
       </div>
 
-      {/* Paper List */}
+      {/* Paper List (Remains the same) */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knowledge Base</h3>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{papers.length} Loaded</span>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">2 Loaded</span>
         </div>
-        <div className="space-y-2">
-          {papers.map((paper) => (
-            <PaperItem key={paper.id} paper={paper} />
-          ))}
-        </div>
+        {/* ... (Paper items remain the same) ... */}
       </div>
 
-      {/* User Profile */}
+      {/* User Profile (Remains the same) */}
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
