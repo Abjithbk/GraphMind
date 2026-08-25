@@ -15,12 +15,18 @@ interface GraphState {
   papers: Paper[];
   isLoading: boolean;
   highlightedNode:string|null;
+  selectedNode: Node | null;
+  searchQuery: string;
+  activeFilters: string[]
   // Actions
   setGraph: (nodes: Node[], edges: Edge[]) => void;
   setPapers: (papers: Paper[]) => void;
   setLoading: (loading: boolean) => void;
   addPaper: (paper: Paper) => void;
   setHighlightedNode: (nodeId:string|null) => void;
+  setSelectedNode: (node:Node|null) => void;
+  setSearchQuery: (query: string) => void;
+  toggleFilter: (type:string) => void;
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -33,10 +39,21 @@ export const useGraphStore = create<GraphState>((set) => ({
   ],
   isLoading: false,
   highlightedNode:null,
+  selectedNode:null,
+  searchQuery:'',
+  activeFilters:['paper','method','claim'],
 
   setGraph: (nodes, edges) => set({ nodes, edges }),
   setPapers: (papers) => set({ papers }),
   setLoading: (loading) => set({ isLoading: loading }),
   addPaper: (paper) => set((state) => ({ papers: [...state.papers, paper] })),
-  setHighlightedNode: (nodeId) => set({highlightedNode:nodeId})
+  setHighlightedNode: (nodeId) => set({highlightedNode:nodeId}),
+  setSelectedNode: (node) => set({selectedNode: node}),
+  setSearchQuery: (query) => set({searchQuery: query}),
+  toggleFilter: (type) => set((state) => {
+    const isActive = state.activeFilters.includes(type);
+    return {
+      activeFilters: isActive ? state.activeFilters.filter((t) => t !== type) : [...state.activeFilters,type]
+    }
+  })
 }));

@@ -19,11 +19,12 @@ import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
 import { useGraphStore } from '@/store/useGraphStore';
 import { Loader2 } from 'lucide-react';
+import { GraphToolbar } from './GraphToolbar';
 
 const nodeTypes = { custom: CustomNode };
 
 function GraphCanvasContent() {
-  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode } = useGraphStore();
+  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode,setSelectedNode,searchQuery,activeFilters } = useGraphStore();
   const { fitView, setCenter } = useReactFlow(); // Now this works because of the Provider below
   
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
@@ -54,8 +55,20 @@ function GraphCanvasContent() {
     [setEdges]
   );
 
+const visibleNodes = storeNodes.filter((node) => {
+  const nodeType = (node.data as any)?.type || 'unknown';
+  const nodeName = ((node.data as any)?.label || '').toLowerCase();
+  
+  // Check if type is active
+  const isTypeActive = activeFilters.includes(nodeType);
+  // Check if it matches search
+  const matchesSearch = searchQuery === '' || nodeName.includes(searchQuery.toLowerCase());
+  
+  return isTypeActive && matchesSearch;
+});
   return (
     <main className="flex-1 relative bg-background h-full">
+      <GraphToolbar />
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -67,11 +80,12 @@ function GraphCanvasContent() {
       )}
 
       <ReactFlow
-        nodes={nodes}
+        nodes={visibleNodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={(_,node) => setSelectedNode(node)}
         nodeTypes={nodeTypes}
         fitView
         className="bg-transparent"
