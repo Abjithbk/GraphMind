@@ -38,8 +38,16 @@ export function mapBackendToReactFlow(data: ExtractionResponse): { nodes: Node[]
         target: targetNode.id,
         label: edge.type, // e.g., 'uses_method'
         animated: true,
-        style: { stroke: '#71717a', strokeWidth: 2 },
-        labelStyle: { fill: '#a1a1aa', fontSize: 10, fontWeight: 600 },
+        style: { stroke: '#52525b', strokeWidth: 1.5 },
+        labelStyle: { fill: '#d4d4d8', fontSize: 10, fontWeight: 700,fontFamily:'monospace',textTransform:'uppercase',letterSpacing:'0.05em' },
+
+        labelBgStyle: {
+          fill: '#18181b',
+          rx:6,
+          ry:6
+        },
+        labelBgPadding:[6,4],
+        labelBgBorderRadius:6,
       });
     }
   });
