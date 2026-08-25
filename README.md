@@ -1,131 +1,222 @@
 # 🕸️ GraphRAG Literature Review Assistant
 
-**Synthesize academic literature through structured knowledge graphs. Go beyond standard RAG to uncover cross-paper relationships, contradictions, and research gaps.**
+> **Turn multiple research PDFs into one connected knowledge graph for cross-paper reasoning.**
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen.svg)]()
+GraphRAG Literature Review Assistant is a full-stack app that extracts structured entities and relationships from research papers, builds a unified graph, and enables graph-aware academic Q&A with streaming responses.
 
----
+## 📚 Table of Contents
 
-## 📖 About
+- [✨ Features](#-features)
+- [🏗️ Architecture & Tech Stack](#-architecture--tech-stack)
+- [📂 Project Structure](#-project-structure)
+- [🚀 Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Backend Setup (FastAPI)](#backend-setup-fastapi)
+  - [Frontend Setup (Next.js)](#frontend-setup-nextjs)
+- [📡 API Documentation](#-api-documentation)
+  - [`POST /extract`](#post-extract)
+  - [`POST /chat`](#post-chat)
+- [🗺️ Roadmap / Future Work](#-roadmap--future-work)
+- [📄 License](#-license)
 
-Reviewing academic literature typically involves reading multiple papers independently and manually identifying how they relate. Existing AI-powered PDF tools (e.g., ChatPDF) rely on standard vector-based Retrieval-Augmented Generation (RAG). While useful for single-document Q&A, they treat papers as isolated blocks of text and struggle with **cross-paper relational questions**.
+## ✨ Features
 
-**GraphRAG Literature Review Assistant** solves this by extracting structured knowledge from research papers and building a dynamic Knowledge Graph. It connects papers through shared concepts, methods, datasets, and citations, enabling deep synthesis and highly traceable answers.
-
-## ✨ Key Features
-
-- **Structured Knowledge Extraction:** Automatically parses PDFs to extract Methods, Datasets, Claims, and Results using advanced LLMs.
-- **Dynamic Knowledge Graph:** Visualizes connections between papers. See exactly which methods overlap and which results conflict.
-- **Cross-Paper Synthesis:** Ask complex questions like *"What are the common research gaps across these papers?"* and get grounded, cited answers.
-- **Interactive UI:** Beautiful, animated graph visualization (powered by React Flow) paired with a streaming chat interface.
-- **Traceability:** Every answer is linked back to specific nodes and source papers in the graph.
+- 📄 **Multi-paper extraction pipeline**: Process multiple PDF paths in one request and build a single graph.
+- 🧠 **Structured knowledge graph modeling**: Extracts `Paper`, `Method`, and `Claim` entities with typed relationships.
+- 🌐 **Unified graph construction**: Merges entities/edges across papers using NetworkX.
+- 💬 **Graph-aware AI chat with streaming**: Sends current graph context (`nodes`, `edges`) to the backend and streams tokens back to the UI.
+- 🔎 **Clickable in-chat citations**: Bracketed references like `[Transformer]` are clickable and highlight matching graph nodes.
+- 🕹️ **Interactive visualization**: React Flow canvas with filtering, node detail panel, and graph exploration controls.
 
 ## 🏗️ Architecture & Tech Stack
 
-The application is built with a decoupled, production-grade architecture.
+### Frontend (`/frontend`)
 
-### 🎨 Frontend — Next.js
+| Layer | Stack |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Graph UI | `@xyflow/react` (React Flow) |
+| State | Zustand |
+| UI System | shadcn/ui-style components, Tailwind CSS 4, `class-variance-authority`, `tailwind-merge` |
+| UX | Framer Motion, Sonner, Lucide icons |
 
-- **Framework:** Next.js 14+ (App Router, TypeScript)
-- **Graph Visualization:** `@xyflow/react` (React Flow) for interactive node graphs.
-- **UI Components:** `shadcn/ui` & Tailwind CSS for a polished, modern design.
-- **AI Chat:** Vercel AI SDK for streaming LLM responses.
-- **Animations:** Framer Motion for smooth transitions.
+### Backend (`/backend`)
 
-### ⚙️ Backend — FastAPI
+| Layer | Stack |
+|---|---|
+| API | FastAPI + Uvicorn |
+| Validation | Pydantic v2 |
+| Graph Engine | NetworkX |
+| PDF Parsing | PyMuPDF |
+| LLM Integration | OpenAI SDK-compatible client via OpenRouter-style `base_url`, Qwen model (`qwen/qwen-2.5-72b-instruct`) |
+| Config | `python-dotenv` (`OPENROUTER_API_KEY`, optional `OPENAI_BASE_URL`) |
 
-- **Framework:** FastAPI (Python)
-- **Graph Engine:** NetworkX for in-memory graph construction and traversal.
-- **PDF Parsing:** PyMuPDF for high-fidelity text extraction.
-- **LLM Integration:** OpenRouter API using `qwen/qwen-2.5-72b-instruct` for structured JSON extraction.
-- **Data Validation:** Pydantic for strict schema enforcement.
+## 📂 Project Structure
 
-### 🔄 System Architecture
-
-```mermaid
-graph TD
-    A[User uploads PDFs] --> B[Next.js Frontend]
-    B -->|POST /extract| C[FastAPI Backend]
-    C -->|Extract Text| D[PyMuPDF]
-    D -->|Send to LLM| E[OpenRouter / Qwen-2.5]
-    E -->|Structured JSON| C
-    C -->|Build Graph| F[NetworkX]
-    F -->|Nodes & Edges| B
-    B -->|Render Graph| G[React Flow UI]
-    B -->|Ask Question| C
-    C -->|Graph Traversal + LLM| H[Synthesized Answer]
-    H --> B
+```text
+lit-graphrag/
+├── backend/
+│   ├── pyproject.toml              # Backend deps, Ruff config, Python requirement
+│   └── src/backend/
+│       ├── main.py                 # FastAPI app, /extract and /chat endpoints
+│       ├── models/schema.py        # Pydantic extraction schemas (Entity/Relationship/ExtractionResult)
+│       ├── parser/pdf_parser.py    # PDF text extraction (PyMuPDF)
+│       ├── graph/builder.py        # NetworkX graph construction
+│       └── extractors/openai_ext.py# LLM extraction + streaming chat calls
+├── frontend/
+│   ├── package.json                # Frontend deps and scripts (pnpm)
+│   └── src/
+│       ├── app/                    # Next.js App Router entrypoints
+│       ├── components/             # Sidebar, GraphCanvas, ChatPanel, NodeDetailPanel, toolbar, UI primitives
+│       ├── lib/
+│       │   ├── api.ts              # HTTP client for /extract and /chat
+│       │   └── graphMapper.ts      # Backend graph JSON -> React Flow nodes/edges
+│       ├── store/useGraphStore.ts  # Global graph/chat/UI state via Zustand
+│       └── types/index.ts          # Shared frontend TypeScript interfaces
+└── README.md
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/)
-- An API key from [OpenRouter](https://openrouter.ai/) or OpenAI/Groq
+- Node.js (LTS recommended)
+- `pnpm` (repo is pinned to `pnpm@11.8.0`)
+- Python **3.14+** (as declared in `backend/pyproject.toml`)
+- [`uv`](https://docs.astral.sh/uv/)
+- A valid LLM API key (currently expected as `OPENROUTER_API_KEY`)
 
-### 1. Backend Setup
+### Backend Setup (FastAPI)
 
 ```bash
-cd backend
-
+cd /home/runner/work/lit-graphrag/lit-graphrag/backend
 uv sync
-
-uv run uvicorn app.main:app --reload
 ```
 
-The backend will be running at:
+Create `/home/runner/work/lit-graphrag/lit-graphrag/backend/.env`:
 
-```text
-http://localhost:8000
+```env
+OPENROUTER_API_KEY=your_api_key_here
+# Optional override; defaults to OpenRouter-compatible endpoint
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
 ```
 
-### 2. Frontend Setup
+Run the backend:
 
 ```bash
-cd frontend
-
-npm install
-
-npm run dev
+uv run uvicorn backend.main:app --app-dir src --reload --host 0.0.0.0 --port 8000
 ```
 
-The frontend will be running at:
+Backend URL: `http://localhost:8000`
+
+### Frontend Setup (Next.js)
+
+```bash
+cd /home/runner/work/lit-graphrag/lit-graphrag/frontend
+corepack pnpm install
+```
+
+Create `/home/runner/work/lit-graphrag/lit-graphrag/frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Run the frontend:
+
+```bash
+corepack pnpm dev
+```
+
+Frontend URL: `http://localhost:3000`
+
+## 📡 API Documentation
+
+Base URL: `http://localhost:8000`
+
+### `POST /extract`
+
+Processes multiple PDF paths, extracts entities/relationships for each valid file, builds one unified graph, and returns graph data for visualization.
+
+**Request body**
+
+```json
+{
+  "pdf_paths": [
+    "/absolute/path/to/paper1.pdf",
+    "/absolute/path/to/paper2.pdf"
+  ]
+}
+```
+
+**200 Response**
+
+```json
+{
+  "papers_processed": 2,
+  "total_nodes": 12,
+  "total_edges": 18,
+  "nodes": [
+    { "name": "Attention Is All You Need", "type": "Paper" },
+    { "name": "Transformer", "type": "Method" },
+    { "name": "Improves translation quality", "type": "Claim" }
+  ],
+  "edges": [
+    { "source": "Attention Is All You Need", "target": "Transformer", "type": "uses_method" },
+    { "source": "Attention Is All You Need", "target": "Improves translation quality", "type": "makes_claim" }
+  ]
+}
+```
+
+**404 Response** (when no valid PDFs were processed)
+
+```json
+{
+  "detail": "No valid PDFs were processed."
+}
+```
+
+### `POST /chat`
+
+Accepts a question plus the current graph context and returns a **streamed plain-text response**.
+
+**Request body**
+
+```json
+{
+  "message": "What are the shared methods across these papers?",
+  "nodes": [
+    { "name": "Attention Is All You Need", "type": "Paper" },
+    { "name": "Transformer", "type": "Method" }
+  ],
+  "edges": [
+    { "source": "Attention Is All You Need", "target": "Transformer", "type": "uses_method" }
+  ]
+}
+```
+
+**200 Response**
 
 ```text
-http://localhost:3000
+(streamed text/plain chunks)
 ```
 
-## 📊 Benchmarking & Success Metrics
+**500 Response**
 
-This project is designed to demonstrate the advantages of graph-structured retrieval over standard vector-RAG.
+```json
+{
+  "detail": "<error message>"
+}
+```
 
-We evaluate the system based on:
+## 🗺️ Roadmap / Future Work
 
-1. **Factual Accuracy:** Parity with standard RAG on single-paper factual questions.
-2. **Relational Accuracy:** The primary differentiator — accuracy on cross-paper questions such as method overlap and contradictions.
-3. **Synthesis Quality:** Depth and usefulness of answers regarding common research gaps.
-4. **Traceability:** Ability to link every claim in the generated answer back to a specific graph node and source PDF.
-
-## 🗺️ Roadmap
-
-- **V1:** Core extraction pipeline, FastAPI backend, NetworkX graph construction.
-- **V2:** Next.js frontend, React Flow visualization, and chat interface.
-- **V3:** Hybrid Retrieval — Vector DB + Graph Traversal router.
-- **V4:** Neo4j integration for persistent, large-scale graph storage.
-- **V5:** Automated benchmarking suite against generic PDF summarizers.
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-Feel free to check the project's issues page for open tasks and feature requests.
+- 🧭 Hybrid retrieval router (graph traversal + vector search)
+- 🗄️ Persistent graph storage (Neo4j migration)
+- 🧱 Vector database integration for long-context retrieval
+- 🔐 User authentication and project-level workspaces
+- 📈 Evaluation and benchmarking suite for cross-paper synthesis quality
 
 ## 📄 License
 
-This project is licensed under the **MIT License**.
+MIT License.
