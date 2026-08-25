@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
-from openai import OpenAI
-from backend.models.schema import ExtractionResult
+
 from dotenv import load_dotenv
+from openai import OpenAI
+
+from backend.models.schema import ExtractionResult
 
 # 1. Load .env file
 dotenv_path = Path(__file__).parent.parent.parent.parent / ".env"
@@ -20,10 +22,11 @@ client = OpenAI(
     api_key=api_key,
     base_url=base_url,
     default_headers={
-        "HTTP-Referer": "http://localhost:8000", # Required by OpenRouter
-        "X-Title": "GraphRAG Lit Review",       # Required by OpenRouter
-    }
+        "HTTP-Referer": "http://localhost:8000",  # Required by OpenRouter
+        "X-Title": "GraphRAG Lit Review",  # Required by OpenRouter
+    },
 )
+
 
 def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     prompt = f"""
@@ -47,14 +50,17 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
 
     # 4. Call OpenRouter using the exact Qwen model string
     completion = client.beta.chat.completions.parse(
-        model="qwen/qwen-2.5-72b-instruct", 
+        model="qwen/qwen-2.5-72b-instruct",
         messages=[
-            {"role": "system", "content": "You are an expert academic assistant that extracts structured knowledge graphs from text."},
+            {
+                "role": "system",
+                "content": "You are an expert academic assistant that extracts structured knowledge graphs from text.",
+            },
             {"role": "user", "content": prompt},
         ],
-        response_format=ExtractionResult, 
+        response_format=ExtractionResult,
     )
-    
+
     return completion.choices[0].message.parsed
 
 
@@ -63,9 +69,9 @@ def chat_with_graph(message: str, graph_context: dict):
     Takes a user question and the current graph context, and returns a STREAMING AI answer.
     """
     # Format the graph into a readable string for the LLM
-    nodes_str = "\n".join([f"- {n['name']} ({n['type']})" for n in graph_context.get('nodes', [])])
-    edges_str = "\n".join([f"- {e['source']} --({e['type']})-> {e['target']}" for e in graph_context.get('edges', [])])
-    
+    nodes_str = "\n".join([f"- {n['name']} ({n['type']})" for n in graph_context.get("nodes", [])])
+    edges_str = "\n".join([f"- {e['source']} --({e['type']})-> {e['target']}" for e in graph_context.get("edges", [])])
+
     prompt = f"""
     You are an expert academic research assistant. 
     You have access to a Knowledge Graph extracted from research papers.
@@ -92,7 +98,7 @@ def chat_with_graph(message: str, graph_context: dict):
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
-        stream=True  # <-- This makes it return a generator of tokens
+        stream=True,  # <-- This makes it return a generator of tokens
     )
-    
+
     return completion
