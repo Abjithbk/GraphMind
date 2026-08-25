@@ -10,12 +10,19 @@ import {
 import { useGraphStore } from "@/store/useGraphStore";
 import { extractGraph } from "@/lib/api";
 import { mapBackendToReactFlow } from "@/lib/graphMapper";
+import {toast} from 'sonner'
+
 export function Sidebar() {
    const {setGraph,setLoading,isLoading} = useGraphStore();
 
    const handleProcessFiles = async () => {
 
     setLoading(true)
+    toast.loading("Extracting knowledge graph from PDFs..",{
+      id:"extract-process",
+      duration:4000
+    });
+
     try {
       const testPaths = [
         "C:/Users/bkabj/Documents/lit-graphrag/backend/src/backend/papers/paper1.pdf", 
@@ -28,9 +35,19 @@ export function Sidebar() {
 
       //update global states
       setGraph(nodes,edges)
+      toast.success(`Successfully processed ${result.papers_processed} papers!`, { 
+      id: "extract-process",
+      description: `${result.total_nodes} nodes and ${result.total_edges} edges created.`,
+      duration:4000
+    });
+
     }
     catch(error) {
-      console.error("Failed to extract graph:",error);
+      toast.error("Failed to process files.", { 
+      id: "extract-process",
+      description: "Please check your console and ensure the backend is running.",
+      duration:4000
+    });
     }
     finally {
       setLoading(false)

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 // Import Inter font
@@ -24,6 +25,8 @@ export default function RootLayout({
       {/* We add 'dark' here to force dark mode by default */}
       <body className="font-sans antialiased bg-background text-foreground">
         {children}
+
+        <Toaster theme="dark" richColors position="top-right" />
       </body>
     </html>
   );
