@@ -9,6 +9,11 @@ interface Paper {
     status: 'processed' | 'pending' | 'error'
 }
 
+interface GraphNodeData {
+  label?: string;
+  type?: string;
+}
+
 interface GraphState {
   nodes: Node[];
   edges: Edge[];
@@ -59,9 +64,9 @@ export const useGraphStore = create<GraphState>((set,get) => ({
   }),
     getLoadedPapers: () => {
     const { nodes } = get();
-    const paperNodes = nodes.filter((n) => (n.data as any)?.type === 'paper');
+    const paperNodes = nodes.filter((n) => (n.data as GraphNodeData)?.type === 'paper');
     return paperNodes.map((p) => ({
-      title: (p.data as any)?.label || 'Unknown Paper',
+      title: (p.data as GraphNodeData)?.label || 'Unknown Paper',
       author: 'Unknown Author',
       year: 'Unknown Year'
     }));

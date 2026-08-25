@@ -30,7 +30,6 @@ export function GraphToolbar() {
       <div className="flex gap-2">
         {filters.map((filter) => {
           const isActive = activeFilters.includes(filter.id);
-          const Icon = filter.icon;
           return (
             <button
               key={filter.id}

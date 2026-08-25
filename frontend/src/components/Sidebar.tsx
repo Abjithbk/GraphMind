@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import { 
   Upload, Network, Library, MessageSquare, FolderOpen, 
   Settings, User, CheckCircle2, MoreVertical, 
-  Loader2
+  Loader2,
+  LucideIcon
 } from "lucide-react";
 import { useGraphStore } from "@/store/useGraphStore";
 import { extractGraph } from "@/lib/api";
 import { mapBackendToReactFlow } from "@/lib/graphMapper";
 import {toast} from 'sonner'
+
+interface Paper {
+  id: string;
+  title: string;
+  author: string;
+  year: string | number;
+  status: 'processed';
+}
 
 export function Sidebar() {
    const {setGraph,setLoading,isLoading,getLoadedPapers} = useGraphStore();
@@ -42,6 +50,7 @@ export function Sidebar() {
 
     }
     catch(error) {
+      console.error(error)
       toast.error("Failed to process files.", { 
       id: "extract-process",
       description: "Please check your console and ensure the backend is running.",
@@ -159,7 +168,7 @@ export function Sidebar() {
   );
 }
 
-function NavItem({ icon: Icon, label, active = false }: { icon: any, label: string, active?: boolean }) {
+function NavItem({ icon: Icon, label, active = false }: { icon: LucideIcon, label: string, active?: boolean }) {
   return (
     <button className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"}`}>
       <Icon className="h-4 w-4" />
@@ -168,7 +177,7 @@ function NavItem({ icon: Icon, label, active = false }: { icon: any, label: stri
   );
 }
 
-function PaperItem({ paper }: { paper: any }) {
+function PaperItem({ paper }: { paper: Paper }) {
   return (
     <div className="group flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-sidebar-accent/50 transition-all cursor-pointer">
       <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />

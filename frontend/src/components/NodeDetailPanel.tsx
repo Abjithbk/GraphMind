@@ -1,12 +1,17 @@
 import {X,FileText,FlaskConical,Award,Network} from 'lucide-react'
 import { useGraphStore } from '@/store/useGraphStore'
 
+interface NodeData {
+  label?: string;
+  type?: string;
+}
+
 export function NodeDetailPanel() {
   const { selectedNode, setSelectedNode, nodes, edges } = useGraphStore();
 
   if (!selectedNode) return null;
 
-  const nodeData = selectedNode.data as any;
+  const nodeData = selectedNode.data as NodeData;
   const nodeType = nodeData?.type || "unknown";
   const nodeName = nodeData?.label || "Unknown Node";
 
@@ -67,7 +72,7 @@ export function NodeDetailPanel() {
                 const direction = isSource ? "outgoing" : "incoming";
 
                 if (!connectedNode) return null;
-                const connData = connectedNode.data as any;
+                const connData = connectedNode.data as NodeData;
 
                 return (
                   <div
@@ -76,7 +81,7 @@ export function NodeDetailPanel() {
                     onClick={() => setSelectedNode(connectedNode)} // Click to navigate!
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      {getIcon(connData?.type)}
+                      {getIcon(connData?.type || "unknown")}
                       <span className="text-sm font-medium text-foreground truncate">
                         {connData?.label}
                       </span>

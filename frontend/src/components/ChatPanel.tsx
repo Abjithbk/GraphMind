@@ -35,11 +35,11 @@ export function ChatPanel() {
     const messageText = text || input
     if (!messageText.trim() || isLoading) return;
 
-    const userMessage: Message = { id: Date.now().toString(), role: "user", content: messageText };
+    const userMessage: Message = { id: crypto.randomUUID() , role: "user", content: messageText };
     setMessages((prev) => [...prev, userMessage]);
     
     // Create an empty AI message to stream into
-    const aiMessageId = (Date.now() + 1).toString();
+    const aiMessageId = crypto.randomUUID();
     setMessages((prev) => [...prev, { id: aiMessageId, role: "ai", content: "" }]);
     
     setInput("");
@@ -57,10 +57,11 @@ export function ChatPanel() {
         );
       });
     } catch (error) {
+      console.error(error)
       toast.error("Failed to get response",{
         duration:4000
       })
-      setMessages((prev) => [...prev, { id: Date.now().toString(), role: "ai", content: "Error connecting to the brain." }]);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "ai", content: "Error connecting to the brain." }]);
     } finally {
       setIsLoading(false);
     }

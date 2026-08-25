@@ -11,7 +11,8 @@ import {
   useEdgesState, 
   BackgroundVariant,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
+  type Connection
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -21,6 +22,11 @@ import { Loader2, Network } from 'lucide-react'; // <-- ADDED Network import
 import { GraphToolbar } from './GraphToolbar';
 
 const nodeTypes = { custom: CustomNode };
+
+interface NodeData {
+  label?: string;
+  type?: string;
+}
 
 function GraphCanvasContent() {
   const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode, setSelectedNode, searchQuery, activeFilters } = useGraphStore();
@@ -35,7 +41,7 @@ function GraphCanvasContent() {
       setEdges(storeEdges);
       setTimeout(() => fitView({ padding: 0.2, duration: 800 }), 100);
     }
-  }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
+  }, [storeNodes, storeEdges, setNodes, setEdges, fitView, nodes.length]);
 
   useEffect(() => {
     if (highlightedNode) {
@@ -47,13 +53,14 @@ function GraphCanvasContent() {
   }, [highlightedNode, nodes, setCenter]);
 
   const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
+    (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
     [setEdges]
   );
 
   const visibleNodes = storeNodes.filter((node) => {
-    const nodeType = (node.data as any)?.type || 'unknown';
-    const nodeName = ((node.data as any)?.label || '').toLowerCase();
+    const data = node.data as NodeData;
+    const nodeType = data?.type || 'unknown';
+    const nodeName = (data?.label || '').toLowerCase();
     const isTypeActive = activeFilters.includes(nodeType);
     const matchesSearch = searchQuery === '' || nodeName.includes(searchQuery.toLowerCase());
     return isTypeActive && matchesSearch;
