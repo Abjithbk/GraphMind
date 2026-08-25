@@ -1,4 +1,3 @@
-// src/components/GraphCanvas.tsx
 "use client";
 
 import { useCallback, useEffect } from 'react';
@@ -18,29 +17,26 @@ import '@xyflow/react/dist/style.css';
 
 import { CustomNode } from './CustomNode';
 import { useGraphStore } from '@/store/useGraphStore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Network } from 'lucide-react'; // <-- ADDED Network import
 import { GraphToolbar } from './GraphToolbar';
 
 const nodeTypes = { custom: CustomNode };
 
 function GraphCanvasContent() {
-  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode,setSelectedNode,searchQuery,activeFilters } = useGraphStore();
-  const { fitView, setCenter } = useReactFlow(); // Now this works because of the Provider below
+  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode, setSelectedNode, searchQuery, activeFilters } = useGraphStore();
+  const { fitView, setCenter } = useReactFlow();
   
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
 
-  // Sync store updates to React Flow
   useEffect(() => {
     if (storeNodes.length !== nodes.length || storeNodes.length > 0) {
       setNodes(storeNodes);
       setEdges(storeEdges);
-      // Automatically fit the view when new nodes are loaded
       setTimeout(() => fitView({ padding: 0.2, duration: 800 }), 100);
     }
   }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
 
-  // Zoom to the highlighted node when clicked in chat
   useEffect(() => {
     if (highlightedNode) {
       const node = nodes.find(n => n.id === highlightedNode);
@@ -55,20 +51,33 @@ function GraphCanvasContent() {
     [setEdges]
   );
 
-const visibleNodes = storeNodes.filter((node) => {
-  const nodeType = (node.data as any)?.type || 'unknown';
-  const nodeName = ((node.data as any)?.label || '').toLowerCase();
-  
-  // Check if type is active
-  const isTypeActive = activeFilters.includes(nodeType);
-  // Check if it matches search
-  const matchesSearch = searchQuery === '' || nodeName.includes(searchQuery.toLowerCase());
-  
-  return isTypeActive && matchesSearch;
-});
+  const visibleNodes = storeNodes.filter((node) => {
+    const nodeType = (node.data as any)?.type || 'unknown';
+    const nodeName = ((node.data as any)?.label || '').toLowerCase();
+    const isTypeActive = activeFilters.includes(nodeType);
+    const matchesSearch = searchQuery === '' || nodeName.includes(searchQuery.toLowerCase());
+    return isTypeActive && matchesSearch;
+  });
+
   return (
     <main className="flex-1 relative bg-background h-full">
       <GraphToolbar />
+
+      {storeNodes.length === 0 && !isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none z-0">
+          <div className="text-center max-w-md px-6">
+            <div className="h-20 w-20 mx-auto mb-6 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
+              <Network className="h-10 w-10 text-muted-foreground/50" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">No Graph Loaded</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Upload your research papers using the sidebar to generate an interactive knowledge graph. 
+              Connections, methods, and claims will appear here.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -85,7 +94,7 @@ const visibleNodes = storeNodes.filter((node) => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={(_,node) => setSelectedNode(node)}
+        onNodeClick={(_, node) => setSelectedNode(node)}
         nodeTypes={nodeTypes}
         fitView
         className="bg-transparent"
@@ -95,16 +104,16 @@ const visibleNodes = storeNodes.filter((node) => {
         <MiniMap 
           className="!bg-card !border-border !rounded-lg !shadow-lg"
           nodeColor={(node) => {
-            if (node.data?.type === 'paper') return '#6366f1'; // Indigo
-            if (node.data?.type === 'method') return '#10b981'; // Emerald
-            if (node.data?.type === 'claim') return '#f59e0b'; // Amber
+            if (node.data?.type === 'paper') return '#6366f1';
+            if (node.data?.type === 'method') return '#10b981';
+            if (node.data?.type === 'claim') return '#f59e0b';
             return '#71717a';
           }}
         />
       </ReactFlow>
 
       {/* Legend */}
-      <div className="absolute top-6 right-6 bg-card/80 backdrop-blur-md p-3 rounded-lg border border-border shadow-lg pointer-events-none">
+      <div className="absolute top-6 right-6 bg-card/80 backdrop-blur-md p-3 rounded-lg border border-border shadow-lg pointer-events-none z-10">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Graph Legend</p>
         <div className="space-y-2">
           <LegendItem color="bg-indigo-500" label="Research Paper" />
@@ -116,7 +125,6 @@ const visibleNodes = storeNodes.filter((node) => {
   );
 }
 
-// Wrap the content in the Provider
 export function GraphCanvas() {
   return (
     <ReactFlowProvider>

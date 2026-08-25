@@ -1,4 +1,3 @@
-// src/lib/graphMapper.ts
 import { Node, Edge } from '@xyflow/react';
 import { ExtractionResponse } from './api';
 
