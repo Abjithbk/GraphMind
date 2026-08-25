@@ -27,9 +27,10 @@ interface GraphState {
   setSelectedNode: (node:Node|null) => void;
   setSearchQuery: (query: string) => void;
   toggleFilter: (type:string) => void;
+  getLoadedPapers: () => Array<{title: string,author: string,year:string}>;
 }
 
-export const useGraphStore = create<GraphState>((set) => ({
+export const useGraphStore = create<GraphState>((set,get) => ({
   nodes: [],
   edges: [],
   papers: [
@@ -55,5 +56,14 @@ export const useGraphStore = create<GraphState>((set) => ({
     return {
       activeFilters: isActive ? state.activeFilters.filter((t) => t !== type) : [...state.activeFilters,type]
     }
-  })
+  }),
+    getLoadedPapers: () => {
+    const { nodes } = get();
+    const paperNodes = nodes.filter((n) => (n.data as any)?.type === 'paper');
+    return paperNodes.map((p) => ({
+      title: (p.data as any)?.label || 'Unknown Paper',
+      author: 'Unknown Author',
+      year: 'Unknown Year'
+    }));
+  },
 }));

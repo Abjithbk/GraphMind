@@ -12,8 +12,8 @@ import { mapBackendToReactFlow } from "@/lib/graphMapper";
 import {toast} from 'sonner'
 
 export function Sidebar() {
-   const {setGraph,setLoading,isLoading} = useGraphStore();
-
+   const {setGraph,setLoading,isLoading,getLoadedPapers} = useGraphStore();
+   const loadedPapers = getLoadedPapers();
    const handleProcessFiles = async () => {
 
     setLoading(true)
@@ -108,10 +108,34 @@ export function Sidebar() {
       {/* Paper List (Remains the same) */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knowledge Base</h3>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">2 Loaded</span>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Knowledge Base
+          </h3>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {loadedPapers.length} Loaded
+          </span>
         </div>
-        {/* ... (Paper items remain the same) ... */}
+        
+        {loadedPapers.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            No papers loaded yet
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {loadedPapers.map((paper, index) => (
+              <PaperItem 
+                key={index} 
+                paper={{
+                  id: index.toString(),
+                  title: paper.title,
+                  author: paper.author,
+                  year: paper.year,
+                  status: 'processed' as const
+                }} 
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* User Profile (Remains the same) */}
