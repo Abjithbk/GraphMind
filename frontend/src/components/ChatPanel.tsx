@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, MessagesSquare } from "lucide-react";
+import { Send, Loader2, Sparkles, MessagesSquare,Copy,Check } from "lucide-react";
 import { useGraphStore } from "@/store/useGraphStore";
 import { chatWithGraph } from "@/lib/api";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ export function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedId,setCopiedId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { nodes, edges, setHighlightedNode } = useGraphStore();
@@ -30,6 +31,15 @@ export function ChatPanel() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleCopy = (text:string,id:string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success("Copied to clipboard",{duration:4000});
+    setTimeout(() => {
+      setCopiedId(null);
+    },2000)
+  }
 
   const handleSend = async (text:string) => {
     const messageText = text || input
@@ -169,11 +179,29 @@ const handleCitationClick = (citationText: string) => {
           <>
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] rounded-lg px-4 py-2.5 text-sm leading-relaxed ${
-                  msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
-                }`}>
-                  {msg.role === "ai" ? renderContent(msg.content) : msg.content}
-                </div>
+                {msg.role === "user" ? (
+                  <div className="max-w-[85%] rounded-lg px-4 py-2.5 text-sm leading-relaxed bg-primary text-primary-foreground">
+                    {msg.content}
+                  </div>
+                ) : (
+                  // AI Message with Hover Copy Button
+                  <div className="group relative max-w-[85%] rounded-lg px-4 py-2.5 text-sm leading-relaxed bg-card border border-border text-foreground">
+                    {renderContent(msg.content)}
+                    
+                    {/* Copy Button (Appears on Hover) */}
+                    <button
+                      onClick={() => handleCopy(msg.content, msg.id)}
+                      className="absolute -bottom-3 -right-3 p-1.5 rounded-md bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                      title="Copy message"
+                    >
+                      {copiedId === msg.id ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             
