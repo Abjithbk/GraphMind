@@ -1,5 +1,5 @@
 import { Node, Edge } from '@xyflow/react';
-import { ExtractionResponse } from './api';
+import { ExtractionResponse } from '@/types';
 
 export function mapBackendToReactFlow(data: ExtractionResponse): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];

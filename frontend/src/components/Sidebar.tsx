@@ -9,15 +9,8 @@ import {
 import { useGraphStore } from "@/store/useGraphStore";
 import { extractGraph } from "@/lib/api";
 import { mapBackendToReactFlow } from "@/lib/graphMapper";
+import { Paper } from "@/types";
 import {toast} from 'sonner'
-
-interface Paper {
-  id: string;
-  title: string;
-  author: string;
-  year: string | number;
-  status: 'processed';
-}
 
 export function Sidebar() {
    const {setGraph,setLoading,isLoading,getLoadedPapers} = useGraphStore();

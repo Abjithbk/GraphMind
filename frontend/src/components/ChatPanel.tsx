@@ -4,13 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Sparkles, MessagesSquare,Copy,Check } from "lucide-react";
 import { useGraphStore } from "@/store/useGraphStore";
 import { chatWithGraph } from "@/lib/api";
+import { Message } from "@/types";
 import { toast } from "sonner";
-
-interface Message {
-  id: string;
-  role: "user" | "ai";
-  content: string;
-}
 
 const SUGGESTED_QUESTIONS = [
   "What are the main methods used in these papers?",
