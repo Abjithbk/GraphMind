@@ -1,39 +1,5 @@
 import {create} from 'zustand'
-import {Node,Edge} from '@xyflow/react'
-
-interface Paper {
-    id: string;
-    title:string;
-    author:string;
-    year:string;
-    status: 'processed' | 'pending' | 'error'
-}
-
-interface GraphNodeData {
-  label?: string;
-  type?: string;
-}
-
-interface GraphState {
-  nodes: Node[];
-  edges: Edge[];
-  papers: Paper[];
-  isLoading: boolean;
-  highlightedNode:string|null;
-  selectedNode: Node | null;
-  searchQuery: string;
-  activeFilters: string[]
-  // Actions
-  setGraph: (nodes: Node[], edges: Edge[]) => void;
-  setPapers: (papers: Paper[]) => void;
-  setLoading: (loading: boolean) => void;
-  addPaper: (paper: Paper) => void;
-  setHighlightedNode: (nodeId:string|null) => void;
-  setSelectedNode: (node:Node|null) => void;
-  setSearchQuery: (query: string) => void;
-  toggleFilter: (type:string) => void;
-  getLoadedPapers: () => Array<{title: string,author: string,year:string}>;
-}
+import { CustomNodeData, GraphState } from '@/types'
 
 export const useGraphStore = create<GraphState>((set,get) => ({
   nodes: [],
@@ -64,9 +30,9 @@ export const useGraphStore = create<GraphState>((set,get) => ({
   }),
     getLoadedPapers: () => {
     const { nodes } = get();
-    const paperNodes = nodes.filter((n) => (n.data as GraphNodeData)?.type === 'paper');
+    const paperNodes = nodes.filter((n) => (n.data as CustomNodeData)?.type === 'paper');
     return paperNodes.map((p) => ({
-      title: (p.data as GraphNodeData)?.label || 'Unknown Paper',
+      title: (p.data as CustomNodeData)?.label || 'Unknown Paper',
       author: 'Unknown Author',
       year: 'Unknown Year'
     }));

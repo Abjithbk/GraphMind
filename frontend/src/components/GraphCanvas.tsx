@@ -18,15 +18,11 @@ import '@xyflow/react/dist/style.css';
 
 import { CustomNode } from './CustomNode';
 import { useGraphStore } from '@/store/useGraphStore';
+import { CustomNodeData } from '@/types';
 import { Loader2, Network } from 'lucide-react'; // <-- ADDED Network import
 import { GraphToolbar } from './GraphToolbar';
 
 const nodeTypes = { custom: CustomNode };
-
-interface NodeData {
-  label?: string;
-  type?: string;
-}
 
 function GraphCanvasContent() {
   const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode, setSelectedNode, searchQuery, activeFilters } = useGraphStore();
@@ -58,7 +54,7 @@ function GraphCanvasContent() {
   );
 
   const visibleNodes = storeNodes.filter((node) => {
-    const data = node.data as NodeData;
+    const data = node.data as CustomNodeData;
     const nodeType = data?.type || 'unknown';
     const nodeName = (data?.label || '').toLowerCase();
     const isTypeActive = activeFilters.includes(nodeType);
