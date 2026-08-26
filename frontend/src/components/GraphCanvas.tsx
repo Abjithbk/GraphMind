@@ -19,13 +19,15 @@ import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
 import { useGraphStore } from '@/store/useGraphStore';
 import { CustomNodeData } from '@/types';
-import { Loader2, Network } from 'lucide-react'; // <-- ADDED Network import
+import { Loader2, Network } from 'lucide-react';
 import { GraphToolbar } from './GraphToolbar';
+import { fetchGraph } from '@/lib/api';
+import { mapBackendToReactFlow } from '@/lib/graphMapper';
 
 const nodeTypes = { custom: CustomNode };
 
 function GraphCanvasContent() {
-  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode, setSelectedNode, searchQuery, activeFilters } = useGraphStore();
+  const { nodes: storeNodes, edges: storeEdges, isLoading, highlightedNode, setSelectedNode, searchQuery, activeFilters,setGraph } = useGraphStore();
   const { fitView, setCenter } = useReactFlow();
   
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
@@ -47,6 +49,18 @@ function GraphCanvasContent() {
       }
     }
   }, [highlightedNode, nodes, setCenter]);
+
+    //  Hydrate the UI from Neo4j when the page loads
+  useEffect(() => {
+    fetchGraph()
+      .then((result) => {
+        if (result.total_nodes > 0) {
+          const { nodes, edges } = mapBackendToReactFlow(result);
+          setGraph(nodes, edges);
+        }
+      })
+      .catch((err) => console.error("No saved graph yet:", err));
+  }, [setGraph]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),

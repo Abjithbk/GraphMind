@@ -1,9 +1,10 @@
 import os
 import re
 import unicodedata
-from neo4j import GraphDatabase
-from dotenv import load_dotenv
 from pathlib import Path
+
+from dotenv import load_dotenv
+from neo4j import GraphDatabase
 
 dotenv_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
@@ -15,10 +16,12 @@ PASSWORD = os.environ.get("NEO4J_PASSWORD")
 if not URI or not PASSWORD:
     raise ValueError("CRITICAL: Neo4j credentials not found in .env file!")
 
-driver = GraphDatabase.driver(URI,auth=(USER,PASSWORD))
+driver = GraphDatabase.driver(URI, auth=(USER, PASSWORD))
+
 
 def get_db():
     return driver
+
 
 def clear_database():
     """Utility function to delete all nodes and relationships (Use with caution!)."""
@@ -26,22 +29,23 @@ def clear_database():
         session.run("MATCH (n) DETACH DELETE n")
     print("🧹 Database cleared.")
 
+
 def test_connection():
     """Tests if the connection to Neo4j is working."""
     try:
         with driver.session() as session:
-            result = session.run("RETURN 1 AS num")
-            print("✅ Successfully connected to Neo4j!")
+            session.run("RETURN 1 AS num")
+            print("Successfully connected to Neo4j!")
     except Exception as e:
-        print(f"❌ Failed to connect to Neo4j: {e}")
+        print(f"Failed to connect to Neo4j: {e}")
 
 
 def _normalize(text: str) -> str:
     """Normalizes text for robust comparison (fixes ligatures, unicode symbols, case)."""
     text = unicodedata.normalize("NFKC", text)  # 'ﬃ' -> 'ffi'
     text = text.lower()
-    text = text.replace("×", "x")               # multiplication sign -> letter x
-    text = re.sub(r"[‐‑‒–—−]", "-", text)       # all dash variants -> hyphen
+    text = text.replace("×", "x")  # multiplication sign -> letter x
+    text = re.sub(r"[‐‑‒–—−]", "-", text)  # all dash variants -> hyphen
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
@@ -135,5 +139,18 @@ def save_graph_to_neo4j(nodes: list, edges: list):
             created += 1
 
         print(f"✅ Neo4j: {len(nodes)} nodes | {created} relationships created | {skipped} skipped")
+
+
+def get_graph_from_neo4j():
+    """Fetches the full live graph from Neo4j for LLM context."""
+    with driver.session() as session:
+        node_records = session.run("MATCH (n:Node) RETURN n.name AS name, n.type AS type")
+        nodes = [{"name": r["name"], "type": r["type"]} for r in node_records]
+
+        edge_records = session.run("MATCH (a:Node)-[r]->(b:Node) RETURN a.name AS source, b.name AS target, type(r) AS type")
+        edges = [{"source": r["source"], "target": r["target"], "type": r["type"].lower()} for r in edge_records]
+    return nodes, edges
+
+
 if __name__ == "__main__":
     test_connection()

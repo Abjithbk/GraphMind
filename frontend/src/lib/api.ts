@@ -44,3 +44,10 @@ export async function chatWithGraph(data: ChatRequest,onToken:(token:string) => 
     }
   }
 }
+
+export async function fetchGraph() {
+  const res = await fetch(`${API_URL}/graph`);
+  if(!res.ok) throw new Error("Failed to load saved graph")
+    return res.json()
+  
+}

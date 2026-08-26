@@ -1,6 +1,5 @@
 # src/backend/main.py
 import os
-from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -11,7 +10,9 @@ from pydantic import BaseModel
 from backend.extractors.openai_ext import chat_with_graph, extract_graph_data
 from backend.graph.builder import build_graph
 from backend.parser.pdf_parser import get_pdf_text
-from .database import save_graph_to_neo4j
+
+from .database import get_graph_from_neo4j, save_graph_to_neo4j
+
 # Load environment variables
 load_dotenv()
 
@@ -52,15 +53,9 @@ def extract_papers(request: ProcessRequest):
         try:
             text = get_pdf_text(pdf_path)
             result = extract_graph_data(text, os.path.basename(pdf_path))
-            nodes_data = [
-                {"name": entity.name, "type": entity.type.lower()} 
-                for entity in result.entities
-            ]
-            edges_data = [
-                {"source": rel.source, "target": rel.target, "type": rel.type} 
-                for rel in result.relationships
-            ]
-            
+            nodes_data = [{"name": entity.name, "type": entity.type.lower()} for entity in result.entities]
+            edges_data = [{"source": rel.source, "target": rel.target, "type": rel.type} for rel in result.relationships]
+
             # Save to Neo4j
             save_graph_to_neo4j(nodes_data, edges_data)
             extractions.append(result)
@@ -89,15 +84,14 @@ def extract_papers(request: ProcessRequest):
 
 class ChatRequest(BaseModel):
     message: str
-    nodes: list[dict[str, Any]]
-    edges: list[dict[str, Any]]
 
 
 @app.post("/chat")
 def chat_with_assistant(request: ChatRequest):
     try:
-        # Pass the current graph state to the LLM
-        graph_context = {"nodes": request.nodes, "edges": request.edges}
+        # 🧠 Read the live graph DIRECTLY from Neo4j!
+        nodes, edges = get_graph_from_neo4j()
+        graph_context = {"nodes": nodes, "edges": edges}
         stream = chat_with_graph(request.message, graph_context)
 
         def generate():
@@ -108,3 +102,16 @@ def chat_with_assistant(request: ChatRequest):
         return StreamingResponse(generate(), media_type="text/plain")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/graph")
+def get_saved_graph():
+    """Returns the persisted graph from Neo4j so the frontend can rehydrate."""
+    nodes, edges = get_graph_from_neo4j()
+    return {
+        "papers_processed": len([n for n in nodes if n["type"].lower() == "paper"]),
+        "total_nodes": len(nodes),
+        "total_edges": len(edges),
+        "nodes": nodes,
+        "edges": edges,
+    }
