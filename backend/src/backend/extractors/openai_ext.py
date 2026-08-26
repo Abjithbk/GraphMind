@@ -46,6 +46,7 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     
     Text:
     {text[:12000]} 
+    CRITICAL RULE: In the relationships list, the 'source' and 'target' strings MUST be exactly identical, character-for-character, to the 'name' of one of the entities in your entities list. Never use filenames, abbreviations, or rephrased variants.
     """
 
     # 4. Call OpenRouter using the exact Qwen model string

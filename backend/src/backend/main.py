@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.extractors.openai_ext import chat_with_graph, extract_graph_data
 from backend.graph.builder import build_graph
 from backend.parser.pdf_parser import get_pdf_text
-
+from .database import save_graph_to_neo4j
 # Load environment variables
 load_dotenv()
 
@@ -52,6 +52,17 @@ def extract_papers(request: ProcessRequest):
         try:
             text = get_pdf_text(pdf_path)
             result = extract_graph_data(text, os.path.basename(pdf_path))
+            nodes_data = [
+                {"name": entity.name, "type": entity.type.lower()} 
+                for entity in result.entities
+            ]
+            edges_data = [
+                {"source": rel.source, "target": rel.target, "type": rel.type} 
+                for rel in result.relationships
+            ]
+            
+            # Save to Neo4j
+            save_graph_to_neo4j(nodes_data, edges_data)
             extractions.append(result)
         except Exception as e:
             print(f"Error processing {pdf_path}: {e}")
