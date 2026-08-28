@@ -22,8 +22,8 @@ client = OpenAI(
     api_key=api_key,
     base_url=base_url,
     default_headers={
-        "HTTP-Referer": "http://localhost:8000",  
-        "X-Title": "GraphRAG Lit Review", 
+        "HTTP-Referer": "http://localhost:8000",
+        "X-Title": "GraphRAG Lit Review",
     },
 )
 
@@ -65,7 +65,7 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     return completion.choices[0].message.parsed
 
 
-def chat_with_graph(message: str, graph_context: dict,text_chunks: list[str] = None):
+def chat_with_graph(message: str, graph_context: dict, text_chunks: list[str] = None):
     """
     Takes a user question and the current graph context, and returns a STREAMING AI answer.
     """
@@ -107,7 +107,7 @@ def chat_with_graph(message: str, graph_context: dict,text_chunks: list[str] = N
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
-        stream=True,  
+        stream=True,
     )
 
     return completion

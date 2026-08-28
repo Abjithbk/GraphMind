@@ -55,7 +55,7 @@ def extract_papers(request: ProcessRequest):
             text = get_pdf_text(pdf_path)
             paper_name = os.path.basename(pdf_path)
 
-            add_paper_to_vector_store(paper_name,text)
+            add_paper_to_vector_store(paper_name, text)
             result = extract_graph_data(text, paper_name)
             nodes_data = [{"name": entity.name, "type": entity.type.lower()} for entity in result.entities]
             edges_data = [{"source": rel.source, "target": rel.target, "type": rel.type} for rel in result.relationships]
@@ -98,7 +98,7 @@ def chat_with_assistant(request: ChatRequest):
         graph_context = {"nodes": nodes, "edges": edges}
 
         text_chunks = search_vector_store(request.message)
-        stream = chat_with_graph(request.message, graph_context,text_chunks)
+        stream = chat_with_graph(request.message, graph_context, text_chunks)
 
         def generate():
             for chunk in stream:
