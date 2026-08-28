@@ -12,7 +12,7 @@ from backend.graph.builder import build_graph
 from backend.parser.pdf_parser import get_pdf_text
 
 from .database import get_graph_from_neo4j, save_graph_to_neo4j
-
+from .vector_store import add_paper_to_vector_store,search_vector_store
 # Load environment variables
 load_dotenv()
 
@@ -52,7 +52,10 @@ def extract_papers(request: ProcessRequest):
         print(f"Processing: {pdf_path}...")
         try:
             text = get_pdf_text(pdf_path)
-            result = extract_graph_data(text, os.path.basename(pdf_path))
+            paper_name = os.path.basename(pdf_path)
+
+            add_paper_to_vector_store(paper_name,text)
+            result = extract_graph_data(text, paper_name)
             nodes_data = [{"name": entity.name, "type": entity.type.lower()} for entity in result.entities]
             edges_data = [{"source": rel.source, "target": rel.target, "type": rel.type} for rel in result.relationships]
 
@@ -89,10 +92,12 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 def chat_with_assistant(request: ChatRequest):
     try:
-        # 🧠 Read the live graph DIRECTLY from Neo4j!
+        # Read the live graph DIRECTLY from Neo4j!
         nodes, edges = get_graph_from_neo4j()
         graph_context = {"nodes": nodes, "edges": edges}
-        stream = chat_with_graph(request.message, graph_context)
+
+        text_chunks = search_vector_store(request.message)
+        stream = chat_with_graph(request.message, graph_context,text_chunks)
 
         def generate():
             for chunk in stream:

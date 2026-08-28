@@ -22,8 +22,8 @@ client = OpenAI(
     api_key=api_key,
     base_url=base_url,
     default_headers={
-        "HTTP-Referer": "http://localhost:8000",  # Required by OpenRouter
-        "X-Title": "GraphRAG Lit Review",  # Required by OpenRouter
+        "HTTP-Referer": "http://localhost:8000",  
+        "X-Title": "GraphRAG Lit Review", 
     },
 )
 
@@ -65,7 +65,7 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     return completion.choices[0].message.parsed
 
 
-def chat_with_graph(message: str, graph_context: dict):
+def chat_with_graph(message: str, graph_context: dict,text_chunks: list[str] = None):
     """
     Takes a user question and the current graph context, and returns a STREAMING AI answer.
     """
@@ -73,19 +73,27 @@ def chat_with_graph(message: str, graph_context: dict):
     nodes_str = "\n".join([f"- {n['name']} ({n['type']})" for n in graph_context.get("nodes", [])])
     edges_str = "\n".join([f"- {e['source']} --({e['type']})-> {e['target']}" for e in graph_context.get("edges", [])])
 
-    prompt = f"""
-    You are an expert academic research assistant. 
-    You have access to a Knowledge Graph extracted from research papers.
+    chunks_str = "\n\n".join(text_chunks) if text_chunks else "No direct text quotes found"
+
+    prompt = f"""You are an expert research assistant. Answer the user's question based on the provided knowledge graph AND text excerpts.
+
+    RULES:
+    1. Use the Graph Context to understand relationships between papers, methods, and claims.
+    2. Use the Text Excerpts to provide specific details, numbers, or quotes from the actual papers.
+    3. Whenever you mention a specific paper, method, or claim that exists in the graph, wrap its EXACT name in square brackets like this: [Transformer] or [LoRA].
+    4. NEVER mention "graph context", "text excerpts", or "the provided data" in your answer. Answer naturally like an expert who has read the papers.
     
-    Here is the current Knowledge Graph context:
-    NODES:
+    GRAPH CONTEXT:
+    Nodes:
     {nodes_str}
     
-    EDGES (Relationships):
+    Relationships:
     {edges_str}
     
-    User Question: {message}
+    TEXT EXCERPTS (from PDFs):
+    {chunks_str}
     
+    USER QUESTION: {message}
     IMPORTANT: When you mention a specific node from the graph, wrap its EXACT name in square brackets. For example: 'The paper uses the [Transformer] method.'
     
     Answer the question based ONLY on the provided graph context. If the graph doesn't contain the answer, say so. Keep the answer concise and academic.
@@ -99,7 +107,7 @@ def chat_with_graph(message: str, graph_context: dict):
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
-        stream=True,  # <-- This makes it return a generator of tokens
+        stream=True,  
     )
 
     return completion
