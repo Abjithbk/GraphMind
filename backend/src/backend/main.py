@@ -12,7 +12,8 @@ from backend.graph.builder import build_graph
 from backend.parser.pdf_parser import get_pdf_text
 
 from .database import get_graph_from_neo4j, save_graph_to_neo4j
-from .vector_store import add_paper_to_vector_store,search_vector_store
+from .vector_store import add_paper_to_vector_store, search_vector_store
+
 # Load environment variables
 load_dotenv()
 

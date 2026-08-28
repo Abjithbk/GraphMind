@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pathlib import Path
 
 CHROMA_DIR = Path(__file__).parent.parent.parent / "chroma_db"
 
