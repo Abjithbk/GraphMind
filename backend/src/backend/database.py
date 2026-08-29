@@ -151,6 +151,7 @@ def get_graph_from_neo4j():
         edges = [{"source": r["source"], "target": r["target"], "type": r["type"].lower()} for r in edge_records]
     return nodes, edges
 
+
 def attach_summary_to_paper(paper_title: str, summary: str):
     """Stores the generated profile directly on the Paper node in Neo4j."""
     with driver.session() as session:
@@ -159,6 +160,7 @@ def attach_summary_to_paper(paper_title: str, summary: str):
             name=paper_title,
             summary=summary,
         )
+
 
 if __name__ == "__main__":
     test_connection()

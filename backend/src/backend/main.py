@@ -1,15 +1,16 @@
 import os
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from backend.extractors.openai_ext import chat_with_graph, extract_graph_data,generate_paper_profile
+from backend.extractors.openai_ext import chat_with_graph, extract_graph_data, generate_paper_profile
 from backend.graph.builder import build_graph
 from backend.parser.pdf_parser import get_pdf_text
 
-from .database import get_graph_from_neo4j, save_graph_to_neo4j,attach_summary_to_paper
+from .database import attach_summary_to_paper, get_graph_from_neo4j, save_graph_to_neo4j
 from .vector_store import add_paper_to_vector_store, search_vector_store
 
 # Load environment variables
@@ -36,12 +37,14 @@ class ProcessRequest(BaseModel):
 def read_root():
     return {"message": "GraphRAG API is running!"}
 
+
 ASPECT_QUERIES = {
     "PROBLEM": "What problem or research gap does this paper address?",
     "METHOD": "How does the proposed method work technically?",
     "RESULTS": "What are the main quantitative results and improvements?",
     "LIMITATIONS": "What limitations or future work are mentioned?",
 }
+
 
 @app.post("/extract")
 def extract_papers(request: ProcessRequest):
@@ -67,10 +70,7 @@ def extract_papers(request: ProcessRequest):
             # Save to Neo4j
             save_graph_to_neo4j(nodes_data, edges_data)
             # ✨ Generate a brief, grounded Paper Profile
-            aspect_chunks = {
-                label: search_vector_store(q, paper_name=paper_name, n_results=3)
-                for label, q in ASPECT_QUERIES.items()
-            }
+            aspect_chunks = {label: search_vector_store(q, paper_name=paper_name, n_results=3) for label, q in ASPECT_QUERIES.items()}
             profile = generate_paper_profile(paper_name, aspect_chunks)
             print(f"\n📄 PAPER PROFILE — {paper_name}\n{profile}\n")
 

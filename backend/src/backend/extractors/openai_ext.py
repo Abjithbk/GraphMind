@@ -112,6 +112,7 @@ def chat_with_graph(message: str, graph_context: dict, text_chunks: list[str] = 
 
     return completion
 
+
 def generate_paper_profile(paper_name: str, aspect_chunks: dict) -> str:
     """Writes a brief, grounded profile of a paper using aspect-based excerpts."""
     blocks = []
