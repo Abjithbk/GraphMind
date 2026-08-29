@@ -111,3 +111,31 @@ def chat_with_graph(message: str, graph_context: dict, text_chunks: list[str] = 
     )
 
     return completion
+
+def generate_paper_profile(paper_name: str, aspect_chunks: dict) -> str:
+    """Writes a brief, grounded profile of a paper using aspect-based excerpts."""
+    blocks = []
+    for label, chunks in aspect_chunks.items():
+        if chunks:
+            blocks.append(f"--- {label} EXCERPTS ---\n" + "\n\n".join(chunks))
+
+    prompt = f"""You are an expert research analyst. Write a brief, accurate profile of the paper "{paper_name}" using ONLY the excerpts below.
+
+RULES:
+- Only use facts found in the excerpts. Never invent numbers or methods.
+- 1-2 sentences per section. Under 150 words total.
+
+FORMAT EXACTLY:
+🎯 Problem: ...
+🔬 Method: ...
+📊 Key Results: ...
+⚠️ Limitations: ...
+
+{chr(10).join(blocks)}
+"""
+    response = client.chat.completions.create(
+        model="qwen/qwen-2.5-72b-instruct",  # <-- use your existing model string
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+    return response.choices[0].message.content

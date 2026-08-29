@@ -29,11 +29,15 @@ def add_paper_to_vector_store(paper_name: str, text: str):
     print(f"✅ Vector Store: saved {len(chunks)} chunks from '{paper_name}'")
 
 
-def search_vector_store(query: str, n_results: int = 4) -> list[str]:
+def search_vector_store(query: str,paper_name:str | None = None, n_results: int = 4) -> list[str]:
     """Finds the text chunks most similar to the question."""
     if collection.count() == 0:
         return []
-    results = collection.query(query_texts=[query], n_results=n_results)
+    where = {"paper_name":paper_name} if paper_name else None
+    try:
+        results = collection.query(query_texts=[query],n_results=n_results,where=where)
+    except Exception:
+        results = collection.query(query_texts=[query],n_results=n_results)
     if results and results["documents"]:
         return results["documents"][0]
     return []
