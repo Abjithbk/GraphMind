@@ -144,8 +144,8 @@ def save_graph_to_neo4j(nodes: list, edges: list):
 def get_graph_from_neo4j():
     """Fetches the full live graph from Neo4j for LLM context."""
     with driver.session() as session:
-        node_records = session.run("MATCH (n:Node) RETURN n.name AS name, n.type AS type")
-        nodes = [{"name": r["name"], "type": r["type"]} for r in node_records]
+        node_records = session.run("MATCH (n:Node) RETURN n.name AS name, n.type AS type,n.summary AS summary")
+        nodes = [{"name": r["name"], "type": r["type"],"summary": r["summary"]} for r in node_records]
 
         edge_records = session.run("MATCH (a:Node)-[r]->(b:Node) RETURN a.name AS source, b.name AS target, type(r) AS type")
         edges = [{"source": r["source"], "target": r["target"], "type": r["type"].lower()} for r in edge_records]

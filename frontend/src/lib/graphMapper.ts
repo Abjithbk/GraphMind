@@ -1,6 +1,7 @@
 import { Node, Edge } from '@xyflow/react';
 import { ExtractionResponse } from '@/types';
 
+
 export function mapBackendToReactFlow(data: ExtractionResponse): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -19,7 +20,8 @@ export function mapBackendToReactFlow(data: ExtractionResponse): { nodes: Node[]
       position: { x, y },
       data: { 
         label: node.name, 
-        type: node.type.toLowerCase() // 'paper', 'method', 'claim'
+        type: node.type.toLowerCase(), // 'paper', 'method', 'claim'
+        summary:node.summary,
       },
     });
   });

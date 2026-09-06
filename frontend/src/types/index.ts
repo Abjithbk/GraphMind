@@ -17,11 +17,13 @@ export interface Paper {
 export interface CustomNodeData {
   label?: string;
   type?: string;
+  summary?:string;
 }
 
 export interface GraphApiNode {
   name: string;
   type: string;
+  summary?:string;
 }
 
 export interface GraphApiEdge {
