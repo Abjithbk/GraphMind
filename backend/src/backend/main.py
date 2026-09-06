@@ -49,7 +49,7 @@ ASPECT_QUERIES = {
 @app.post("/extract")
 def extract_papers(request: ProcessRequest):
     extractions = []
-    paper_summaries: dict[str,str] = {}
+    paper_summaries: dict[str, str] = {}
     # 1. Loop through all provided PDF paths
     for pdf_path in request.pdf_paths:
         if not os.path.exists(pdf_path):
@@ -92,7 +92,14 @@ def extract_papers(request: ProcessRequest):
     G = build_graph(extractions)
 
     # 3. Format for JSON response
-    nodes = [{"name": node, "type": attrs.get("type", "Unknown"),"summary":paper_summaries.get(node),} for node, attrs in G.nodes(data=True)]
+    nodes = [
+        {
+            "name": node,
+            "type": attrs.get("type", "Unknown"),
+            "summary": paper_summaries.get(node),
+        }
+        for node, attrs in G.nodes(data=True)
+    ]
     edges = [{"source": u, "target": v, "type": attrs.get("type", "relates_to")} for u, v, attrs in G.edges(data=True)]
 
     # Return the combined graph
