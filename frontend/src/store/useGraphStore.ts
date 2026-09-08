@@ -5,7 +5,6 @@ export const useGraphStore = create<GraphState>((set,get) => ({
   nodes: [],
   edges: [],
   papers: [
-    // Dummy data for now, we will replace this with real data later
     { id: '1', title: 'Attention Is All You Need', author: 'Vaswani et al.', year: '2017', status: 'processed' },
     { id: '2', title: 'Graph RAG for Review', author: 'Microsoft Research', year: '2024', status: 'processed' },
   ],
