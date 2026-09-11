@@ -11,3 +11,6 @@ __pycache__/
 
 # Data
 papers/
+
+# Documentation & notes
+V1_ISSUES_AND_FIXES.md

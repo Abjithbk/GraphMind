@@ -28,7 +28,78 @@ client = OpenAI(
 )
 
 
-def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
+# ---------------------------------------------------------------------------
+# Chunking & Merging helpers
+# ---------------------------------------------------------------------------
+
+CHUNK_SIZE = 50_000  # ~12,500 tokens — safe for Qwen 72B's 32k context window
+CHUNK_OVERLAP = 2_000  # overlap so entities near boundaries aren't lost
+
+
+def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
+    """Split *text* into overlapping windows of *chunk_size* characters."""
+    if len(text) <= chunk_size:
+        return [text]
+
+    chunks: list[str] = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += chunk_size - overlap
+    return chunks
+
+
+def merge_extraction_results(results: list[ExtractionResult]) -> ExtractionResult:
+    """Deduplicate and merge multiple extraction results into one."""
+    from backend.models.schema import Entity, Relationship
+
+    seen_entities: dict[tuple[str, str], Entity] = {}
+    seen_relationships: dict[tuple[str, str, str], Relationship] = {}
+    paper_title = results[0].paper_title if results else ""
+
+    for result in results:
+        # Keep the first non-empty paper_title we encounter
+        if not paper_title and result.paper_title:
+            paper_title = result.paper_title
+
+        for entity in result.entities:
+            key = (entity.name.lower().strip(), entity.type.lower().strip())
+            if key not in seen_entities:
+                seen_entities[key] = entity
+
+        for rel in result.relationships:
+            key = (rel.source.lower().strip(), rel.target.lower().strip(), rel.type.lower().strip())
+            if key not in seen_relationships:
+                seen_relationships[key] = rel
+
+    return ExtractionResult(
+        paper_title=paper_title,
+        entities=list(seen_entities.values()),
+        relationships=list(seen_relationships.values()),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Core extraction
+# ---------------------------------------------------------------------------
+
+def _extract_single_chunk(
+    text_chunk: str,
+    paper_filename: str,
+    chunk_index: int = 0,
+    total_chunks: int = 1,
+) -> ExtractionResult:
+    """Send a single text chunk to the LLM for entity/relationship extraction."""
+
+    chunk_note = ""
+    if total_chunks > 1:
+        chunk_note = (
+            f"\n    NOTE: This is section {chunk_index + 1} of {total_chunks} "
+            f"from the same paper. Extract all entities and relationships you "
+            f"find in THIS section.\n"
+        )
+
     prompt = f"""
     You are an expert academic research assistant. 
     Read the following text from a research paper. 
@@ -43,13 +114,12 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     - The Paper `makes_claim` the Claims.
     
     Paper Filename/Context: {paper_filename}
-    
+    {chunk_note}
     Text:
-    {text[:12000]} 
+    {text_chunk}
     CRITICAL RULE: In the relationships list, the 'source' and 'target' strings MUST be exactly identical, character-for-character, to the 'name' of one of the entities in your entities list. Never use filenames, abbreviations, or rephrased variants.
     """
 
-    # 4. Call OpenRouter using the exact Qwen model string
     completion = client.beta.chat.completions.parse(
         model="qwen/qwen-2.5-72b-instruct",
         messages=[
@@ -63,6 +133,34 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
     )
 
     return completion.choices[0].message.parsed
+
+
+def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
+    """Extract entities and relationships from the full paper text.
+
+    Short papers (≤ 50k chars) are processed in a single LLM call.
+    Longer papers are chunked, extracted per-chunk, then merged with
+    deduplication.
+    """
+    chunks = chunk_text(text)
+
+    if len(chunks) == 1:
+        print(f"  → Single-chunk extraction ({len(text):,} chars)")
+        return _extract_single_chunk(chunks[0], paper_filename)
+
+    print(f"  → Chunked extraction: {len(chunks)} chunks from {len(text):,} chars")
+    results: list[ExtractionResult] = []
+    for i, chunk in enumerate(chunks):
+        print(f"    • Extracting chunk {i + 1}/{len(chunks)} ({len(chunk):,} chars)...")
+        result = _extract_single_chunk(chunk, paper_filename, chunk_index=i, total_chunks=len(chunks))
+        results.append(result)
+
+    merged = merge_extraction_results(results)
+    print(
+        f"  → Merged: {len(merged.entities)} entities, "
+        f"{len(merged.relationships)} relationships"
+    )
+    return merged
 
 
 def chat_with_graph(message: str, graph_context: dict, text_chunks: list[str] = None):
