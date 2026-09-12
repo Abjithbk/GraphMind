@@ -1,9 +1,11 @@
 import os
+import logging
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from neo4j.exceptions import ServiceUnavailable, SessionExpired
 from pydantic import BaseModel
 
 from backend.extractors.openai_ext import chat_with_graph, extract_graph_data, generate_paper_profile
@@ -21,11 +23,20 @@ app = FastAPI(title="GraphRAG Literature Review API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger = logging.getLogger(__name__)
 
 
 # Update the request model to accept a LIST of PDF paths
@@ -132,6 +143,12 @@ def chat_with_assistant(request: ChatRequest):
                     yield chunk.choices[0].delta.content
 
         return StreamingResponse(generate(), media_type="text/plain")
+    except (ServiceUnavailable, SessionExpired, OSError) as e:
+        logger.warning(f"Neo4j unavailable during chat: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database is currently unavailable. Please check your Neo4j connection and try again.",
+        ) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -139,11 +156,21 @@ def chat_with_assistant(request: ChatRequest):
 @app.get("/graph")
 def get_saved_graph():
     """Returns the persisted graph from Neo4j so the frontend can rehydrate."""
-    nodes, edges = get_graph_from_neo4j()
-    return {
-        "papers_processed": len([n for n in nodes if n["type"].lower() == "paper"]),
-        "total_nodes": len(nodes),
-        "total_edges": len(edges),
-        "nodes": nodes,
-        "edges": edges,
-    }
+    try:
+        nodes, edges = get_graph_from_neo4j()
+        return {
+            "papers_processed": len([n for n in nodes if n["type"].lower() == "paper"]),
+            "total_nodes": len(nodes),
+            "total_edges": len(edges),
+            "nodes": nodes,
+            "edges": edges,
+        }
+    except (ServiceUnavailable, SessionExpired, OSError) as e:
+        logger.warning(f"Neo4j unavailable — returning empty graph: {e}")
+        return {
+            "papers_processed": 0,
+            "total_nodes": 0,
+            "total_edges": 0,
+            "nodes": [],
+            "edges": [],
+        }

@@ -1,7 +1,58 @@
-import {X,FileText,FlaskConical,Award,Network} from 'lucide-react'
+import {X,FileText,FlaskConical,Award,Network,BookOpen} from 'lucide-react'
 import { useGraphStore } from '@/store/useGraphStore'
 import { CustomNodeData } from '@/types'
 import {motion , AnimatePresence} from 'framer-motion'
+
+function PaperSummaryCard({ summary }: { summary: string }) {
+  // Split the summary into sections by common headers (Problem, Method, Results, Limitations)
+  const sections = summary.split(/\n(?=(?:Problem|Method|Results|Limitations|Contributions|Approach|Conclusion)\s*:)/i);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="mb-6 p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <BookOpen className="h-4 w-4 text-indigo-400" />
+        <h4 className="font-semibold text-indigo-300 uppercase tracking-wider text-xs">
+          Paper Summary
+        </h4>
+      </div>
+      <div className="space-y-2">
+        {sections.map((section, idx) => {
+          const trimmed = section.trim();
+          if (!trimmed) return null;
+
+          // Check if section starts with a known header
+          const headerMatch = trimmed.match(/^(Problem|Method|Results|Limitations|Contributions|Approach|Conclusion)\s*:\s*([\s\S]*)/i);
+
+          if (headerMatch) {
+            const [, header, content] = headerMatch;
+            return (
+              <div key={idx} className="text-xs">
+                <span className="font-semibold text-indigo-300/90 capitalize">
+                  {header.trim()}:
+                </span>{' '}
+                <span className="text-foreground/80 leading-relaxed">
+                  {content.trim()}
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <p key={idx} className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">
+              {trimmed}
+            </p>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
 export function NodeDetailPanel() {
   const { selectedNode, setSelectedNode, nodes, edges } = useGraphStore();
 
@@ -61,6 +112,11 @@ export function NodeDetailPanel() {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Paper Summary */}
+            {nodeType === "paper" && nodeData?.summary && (
+              <PaperSummaryCard summary={nodeData.summary} />
+            )}
+
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Connected Nodes ({connectedEdges.length})
