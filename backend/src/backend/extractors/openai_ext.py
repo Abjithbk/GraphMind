@@ -84,6 +84,7 @@ def merge_extraction_results(results: list[ExtractionResult]) -> ExtractionResul
 # Core extraction
 # ---------------------------------------------------------------------------
 
+
 def _extract_single_chunk(
     text_chunk: str,
     paper_filename: str,
@@ -94,11 +95,7 @@ def _extract_single_chunk(
 
     chunk_note = ""
     if total_chunks > 1:
-        chunk_note = (
-            f"\n    NOTE: This is section {chunk_index + 1} of {total_chunks} "
-            f"from the same paper. Extract all entities and relationships you "
-            f"find in THIS section.\n"
-        )
+        chunk_note = f"\n    NOTE: This is section {chunk_index + 1} of {total_chunks} from the same paper. Extract all entities and relationships you find in THIS section.\n"
 
     prompt = f"""
     You are an expert academic research assistant. 
@@ -156,10 +153,7 @@ def extract_graph_data(text: str, paper_filename: str) -> ExtractionResult:
         results.append(result)
 
     merged = merge_extraction_results(results)
-    print(
-        f"  → Merged: {len(merged.entities)} entities, "
-        f"{len(merged.relationships)} relationships"
-    )
+    print(f"  → Merged: {len(merged.entities)} entities, {len(merged.relationships)} relationships")
     return merged
 
 
