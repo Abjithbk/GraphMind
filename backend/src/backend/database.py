@@ -1,12 +1,11 @@
+import logging
 import os
 import re
-import logging
 import unicodedata
 from pathlib import Path
 
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
-from neo4j.exceptions import ServiceUnavailable, SessionExpired
 
 dotenv_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
