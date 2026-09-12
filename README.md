@@ -1,222 +1,334 @@
-# 🕸️ GraphRAG Literature Review Assistant
+# Lit-GraphRAG: Academic Literature Review Assistant
 
-> **Turn multiple research PDFs into one connected knowledge graph for cross-paper reasoning.**
+[![Next.js](https://img.shields.io/badge/Next.js-16.3.2-black?style=flat&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb?style=flat&logo=react)](https://react.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141+-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.14-blue?style=flat&logo=python)](https://python.org)
+[![Neo4j](https://img.shields.io/badge/Neo4j-Graph%20Database-45818e?style=flat&logo=neo4j)](https://neo4j.com/)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20Store-orange?style=flat)](https://trychroma.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS%20v4-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-GraphRAG Literature Review Assistant is a full-stack app that extracts structured entities and relationships from research papers, builds a unified graph, and enables graph-aware academic Q&A with streaming responses.
+> Transform multiple academic research PDFs into an interactive, interconnected knowledge graph for cross-paper synthesis and citation-grounded conversational reasoning.
 
-## 📚 Table of Contents
+---
 
-- [✨ Features](#-features)
-- [🏗️ Architecture & Tech Stack](#-architecture--tech-stack)
-- [📂 Project Structure](#-project-structure)
-- [🚀 Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend Setup (FastAPI)](#backend-setup-fastapi)
-  - [Frontend Setup (Next.js)](#frontend-setup-nextjs)
-- [📡 API Documentation](#-api-documentation)
-  - [`POST /extract`](#post-extract)
-  - [`POST /chat`](#post-chat)
-- [🗺️ Roadmap / Future Work](#-roadmap--future-work)
-- [📄 License](#-license)
+## Overview
 
-## ✨ Features
+Traditional Retrieval-Augmented Generation (RAG) divides documents into arbitrary text chunks and retrieves isolated passages based on vector similarity. While effective for single-fact lookups, standard RAG struggles with synthesizing multi-paper corpora—it cannot easily answer structural questions such as *"Which methodologies are shared across Paper A and Paper B?"* or *"What claims directly challenge or extend prior work?"*.
 
-- 📄 **Multi-paper extraction pipeline**: Process multiple PDF paths in one request and build a single graph.
-- 🧠 **Structured knowledge graph modeling**: Extracts `Paper`, `Method`, and `Claim` entities with typed relationships.
-- 🌐 **Unified graph construction**: Merges entities/edges across papers using NetworkX.
-- 💬 **Graph-aware AI chat with streaming**: Sends current graph context (`nodes`, `edges`) to the backend and streams tokens back to the UI.
-- 🔎 **Clickable in-chat citations**: Bracketed references like `[Transformer]` are clickable and highlight matching graph nodes.
-- 🕹️ **Interactive visualization**: React Flow canvas with filtering, node detail panel, and graph exploration controls.
+**Lit-GraphRAG** addresses this challenge by pairing **Graph Databases (Neo4j)** and **Vector Stores (ChromaDB)** with targeted LLM information extraction:
 
-## 🏗️ Architecture & Tech Stack
+1. **Entity and Relation Extraction**: Discovers `Paper`, `Method`, and `Claim` entities alongside typed semantic links (`uses_method`, `makes_claim`, `evaluates_on`).
+2. **Persistent Knowledge Graph**: Constructs a persistent knowledge network in Neo4j that can be rehydrated and explored interactively.
+3. **Automated Grounded Profiling**: Synthesizes a structured 4-part summary (*Problem*, *Method*, *Results*, *Limitations*) anchored by vector search across the source text.
+4. **Graph-Aware Conversational Interface**: Blends relational graph context with text passage retrieval to stream answers with interactive, clickable citations that highlight matching nodes on the canvas.
+
+---
+
+## System Architecture & Data Flow
+
+```mermaid
+flowchart TD
+    subgraph Ingestion["1. Ingestion & Extraction Pipeline"]
+        PDFs["Research Papers (PDF)"] --> PyMuPDF["PyMuPDF Text Parser"]
+        PyMuPDF --> Chunker["Text Chunker (50,000 char window)"]
+        Chunker --> LLM_Ext["LLM Extractor (Qwen 2.5 72B)"]
+    end
+
+    subgraph DualStore["2. Dual-Index Storage Layer"]
+        LLM_Ext -->|"Entities & Relations"| Neo4j[("Neo4j Knowledge Graph")]
+        PyMuPDF -->|"Semantic Chunks"| ChromaDB[("ChromaDB Vector Store")]
+        ChromaDB --> Profiler["4-Aspect Profiling Engine"]
+        Profiler -->|"Problem, Method, Results, Limits"| Neo4j
+    end
+
+    subgraph GraphUI["3. Interactive Frontend (Next.js 16 + React 19)"]
+        Neo4j -->|"GET /graph"| ReactFlow["Interactive Canvas (@xyflow/react)"]
+        ReactFlow --> NodeDetail["Node Details & Paper Profiles"]
+    end
+
+    subgraph ChatEngine["4. Graph-Aware Streaming Chat"]
+        UserQuery["User Research Query"] --> HybridSearch["Hybrid Context Gatherer"]
+        Neo4j -->|"Active Graph Subgraph"| HybridSearch
+        ChromaDB -->|"Relevant Text Chunks"| HybridSearch
+        HybridSearch --> StreamLLM["Streaming LLM (OpenRouter)"]
+        StreamLLM -->|"text/plain Stream"| ChatPanel["Chat UI with Clickable [Citations]"]
+        ChatPanel -.->|"Click Node Citation"| ReactFlow
+    end
+```
+
+---
+
+## Key Capabilities
+
+- **Multi-Document Ingestion**: Process multiple academic papers simultaneously into a cohesive, non-redundant knowledge network.
+- **Structured Ontology**: Extracts distinct entities (`Paper`, `Method`, `Claim`) and typed relations (`uses_method`, `makes_claim`, `proposes`).
+- **Persistent Graph Storage**: Powered by Neo4j for scalable relational persistence, graph traversals, and multi-session rehydration.
+- **4-Part Grounded Paper Profiles**: Automatically queries ChromaDB for each paper's *Problem*, *Method*, *Results*, and *Limitations*, attaching grounded summaries directly to `Paper` nodes.
+- **Streaming Academic Q&A**: Stream conversational answers token-by-token with dual context from both the knowledge graph structure and raw text passages.
+- **Interactive In-Text Graph Citations**: Bracketed citations such as `[Transformer]` in chat responses are interactive—clicking them navigates and highlights matching nodes on the canvas.
+- **Canvas Exploration**: React Flow (`@xyflow/react`) interface featuring smooth zoom/pan controls, type filtering, mini-map, and node detail drawers.
+
+---
+
+## Tech Stack
 
 ### Frontend (`/frontend`)
 
-| Layer | Stack |
+| Component | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router), React 19, TypeScript |
-| Graph UI | `@xyflow/react` (React Flow) |
-| State | Zustand |
-| UI System | shadcn/ui-style components, Tailwind CSS 4, `class-variance-authority`, `tailwind-merge` |
-| UX | Framer Motion, Sonner, Lucide icons |
+| Framework | [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) |
+| Language | TypeScript |
+| Canvas Engine | [@xyflow/react (React Flow)](https://reactflow.dev/) |
+| State Management | [Zustand](https://github.com/pmndrs/zustand) |
+| UI & Styling | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI, Lucide Icons, Framer Motion |
+| Package Manager | `pnpm` (pinned to v11.8.0) |
 
 ### Backend (`/backend`)
 
-| Layer | Stack |
+| Component | Technology |
 |---|---|
-| API | FastAPI + Uvicorn |
-| Validation | Pydantic v2 |
-| Graph Engine | NetworkX |
-| PDF Parsing | PyMuPDF |
-| LLM Integration | OpenAI SDK-compatible client via OpenRouter-style `base_url`, Qwen model (`qwen/qwen-2.5-72b-instruct`) |
-| Config | `python-dotenv` (`OPENROUTER_API_KEY`, optional `OPENAI_BASE_URL`) |
+| API Framework | [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) |
+| Language | Python 3.12+ / 3.14 |
+| Graph Database | [Neo4j](https://neo4j.com/) via official `neo4j` Python driver |
+| Vector Database | [ChromaDB](https://www.trychroma.com/) |
+| Document Parser | [PyMuPDF (fitz)](https://pymupdf.readthedocs.io/) |
+| LLM Client | OpenAI SDK configured for OpenRouter (`qwen/qwen-2.5-72b-instruct`) |
+| Package Manager | [`uv`](https://docs.astral.sh/uv/) |
 
-## 📂 Project Structure
+---
+
+## Repository Layout
 
 ```text
 lit-graphrag/
 ├── backend/
-│   ├── pyproject.toml              # Backend deps, Ruff config, Python requirement
+│   ├── pyproject.toml              # Dependencies, build & Ruff configuration
+│   ├── .env.example                # Template for backend environment variables
 │   └── src/backend/
-│       ├── main.py                 # FastAPI app, /extract and /chat endpoints
-│       ├── models/schema.py        # Pydantic extraction schemas (Entity/Relationship/ExtractionResult)
-│       ├── parser/pdf_parser.py    # PDF text extraction (PyMuPDF)
-│       ├── graph/builder.py        # NetworkX graph construction
-│       └── extractors/openai_ext.py# LLM extraction + streaming chat calls
+│       ├── main.py                 # FastAPI application & route definitions
+│       ├── database.py             # Neo4j connection & graph persistence helpers
+│       ├── vector_store.py         # ChromaDB chunk indexing & similarity search
+│       ├── models/
+│       │   └── schema.py           # Pydantic models (Entity, Relationship, ExtractionResult)
+│       ├── parser/
+│       │   └── pdf_parser.py       # PyMuPDF-based text extraction from PDF files
+│       ├── graph/
+│       │   └── builder.py          # NetworkX graph aggregation & formatting
+│       └── extractors/
+│           └── openai_ext.py       # LLM extraction prompts, profiling & streaming chat
 ├── frontend/
-│   ├── package.json                # Frontend deps and scripts (pnpm)
+│   ├── package.json                # Frontend scripts and dependencies
+│   ├── .env.example                # Template for frontend environment variables
 │   └── src/
-│       ├── app/                    # Next.js App Router entrypoints
-│       ├── components/             # Sidebar, GraphCanvas, ChatPanel, NodeDetailPanel, toolbar, UI primitives
+│       ├── app/                    # Next.js App Router layout & pages
+│       ├── components/             # UI components (GraphCanvas, ChatPanel, Sidebar, NodeDetailPanel)
 │       ├── lib/
-│       │   ├── api.ts              # HTTP client for /extract and /chat
-│       │   └── graphMapper.ts      # Backend graph JSON -> React Flow nodes/edges
-│       ├── store/useGraphStore.ts  # Global graph/chat/UI state via Zustand
-│       └── types/index.ts          # Shared frontend TypeScript interfaces
+│       │   ├── api.ts              # API client methods for /extract, /graph, and /chat
+│       │   └── graphMapper.ts      # Adapts backend graph JSON to React Flow node/edge models
+│       ├── store/
+│       │   └── useGraphStore.ts    # Global Zustand store for nodes, edges, chat, and active filters
+│       └── types/
+│           └── index.ts            # Frontend TypeScript definitions
 └── README.md
 ```
 
-## 🚀 Getting Started
+---
+
+## Quickstart Guide
 
 ### Prerequisites
 
-- Node.js (LTS recommended)
-- `pnpm` (repo is pinned to `pnpm@11.8.0`)
-- Python **3.14+** (as declared in `backend/pyproject.toml`)
-- [`uv`](https://docs.astral.sh/uv/)
-- A valid LLM API key (currently expected as `OPENROUTER_API_KEY`)
+Ensure the following tools are available on your system:
+- **Node.js**: `v20.x` or later
+- **pnpm**: `v9.x` or later (or enable via `corepack enable pnpm`)
+- **Python**: `3.12+` or `3.14`
+- **uv**: Fast Python package manager ([Installation Guide](https://docs.astral.sh/uv/getting-started/installation/))
+- **Neo4j Instance**: Local Neo4j Desktop / Docker container, or a free cloud instance on [Neo4j AuraDB](https://neo4j.com/cloud/platform/aura-graph-database/)
+- **OpenRouter API Key**: Obtainable from [OpenRouter](https://openrouter.ai/) (access to `qwen/qwen-2.5-72b-instruct` or compatible models)
 
-### Backend Setup (FastAPI)
+---
 
-```bash
-cd /home/runner/work/lit-graphrag/lit-graphrag/backend
-uv sync
-```
+### 1. Backend Setup
 
-Create `/home/runner/work/lit-graphrag/lit-graphrag/backend/.env`:
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
 
-```env
-OPENROUTER_API_KEY=your_api_key_here
-# Optional override; defaults to OpenRouter-compatible endpoint
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-```
+2. Install dependencies:
+   ```bash
+   uv sync
+   ```
 
-Run the backend:
+3. Create your `.env` configuration file:
+   ```bash
+   cp .env.example .env
+   ```
 
-```bash
-uv run uvicorn backend.main:app --app-dir src --reload --host 0.0.0.0 --port 8000
-```
+4. Populate `backend/.env` with your credentials:
+   ```env
+   # LLM Provider Configuration (OpenRouter)
+   OPENROUTER_API_KEY=sk-or-v1-your-key-here
+   OPENAI_BASE_URL=https://openrouter.ai/api/v1
 
-Backend URL: `http://localhost:8000`
+   # Neo4j Graph Database
+   NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io
+   NEO4J_USERNAME=neo4j
+   NEO4J_PASSWORD=your_secure_password
+   ```
 
-### Frontend Setup (Next.js)
+5. Launch the FastAPI server:
+   ```bash
+   uv run uvicorn backend.main:app --app-dir src --reload --host 0.0.0.0 --port 8000
+   ```
 
-```bash
-cd /home/runner/work/lit-graphrag/lit-graphrag/frontend
-corepack pnpm install
-```
+   The backend will be live at `http://localhost:8000`. Interactive OpenAPI documentation is accessible at `http://localhost:8000/docs`.
 
-Create `/home/runner/work/lit-graphrag/lit-graphrag/frontend/.env.local`:
+---
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+### 2. Frontend Setup
 
-Run the frontend:
+1. Open a new terminal window and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
 
-```bash
-corepack pnpm dev
-```
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
 
-Frontend URL: `http://localhost:3000`
+3. Configure frontend environment variables:
+   ```bash
+   # Create .env.local
+   echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+   ```
 
-## 📡 API Documentation
+4. Start the Next.js development server:
+   ```bash
+   pnpm dev
+   ```
+
+5. Open your browser and navigate to `http://localhost:3000`.
+
+---
+
+## API Reference
 
 Base URL: `http://localhost:8000`
 
+### `GET /`
+Health check endpoint to verify backend service status.
+- **Response**: `{"message": "GraphRAG API is running!"}`
+
+---
+
 ### `POST /extract`
+Ingests a list of PDF file paths, extracts entities and relationships, updates both ChromaDB and Neo4j, generates 4-part grounded paper profiles, and returns the unified knowledge graph.
 
-Processes multiple PDF paths, extracts entities/relationships for each valid file, builds one unified graph, and returns graph data for visualization.
+- **Request Body**:
+  ```json
+  {
+    "pdf_paths": [
+      "/path/to/paper1.pdf",
+      "/path/to/paper2.pdf"
+    ]
+  }
+  ```
 
-**Request body**
+- **Response `200 OK`**:
+  ```json
+  {
+    "papers_processed": 2,
+    "total_nodes": 24,
+    "total_edges": 31,
+    "nodes": [
+      {
+        "name": "Attention Is All You Need",
+        "type": "Paper",
+        "summary": "### 1. Core Problem Addressed\nSequential computation in RNNs..."
+      },
+      {
+        "name": "Transformer",
+        "type": "Method",
+        "summary": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "Attention Is All You Need",
+        "target": "Transformer",
+        "type": "uses_method"
+      }
+    ]
+  }
+  ```
 
-```json
-{
-  "pdf_paths": [
-    "/absolute/path/to/paper1.pdf",
-    "/absolute/path/to/paper2.pdf"
-  ]
-}
-```
+---
 
-**200 Response**
+### `GET /graph`
+Rehydrates the current persisted graph directly from the Neo4j database on page refresh or application startup.
 
-```json
-{
-  "papers_processed": 2,
-  "total_nodes": 12,
-  "total_edges": 18,
-  "nodes": [
-    { "name": "Attention Is All You Need", "type": "Paper" },
-    { "name": "Transformer", "type": "Method" },
-    { "name": "Improves translation quality", "type": "Claim" }
-  ],
-  "edges": [
-    { "source": "Attention Is All You Need", "target": "Transformer", "type": "uses_method" },
-    { "source": "Attention Is All You Need", "target": "Improves translation quality", "type": "makes_claim" }
-  ]
-}
-```
+- **Response `200 OK`**:
+  ```json
+  {
+    "papers_processed": 2,
+    "total_nodes": 24,
+    "total_edges": 31,
+    "nodes": [ ... ],
+    "edges": [ ... ]
+  }
+  ```
 
-**404 Response** (when no valid PDFs were processed)
-
-```json
-{
-  "detail": "No valid PDFs were processed."
-}
-```
+---
 
 ### `POST /chat`
+Submits a user query and returns a token-by-token streamed response generated with hybrid context (Neo4j graph relationships + ChromaDB semantic chunks).
 
-Accepts a question plus the current graph context and returns a **streamed plain-text response**.
+- **Request Body**:
+  ```json
+  {
+    "message": "Which papers utilize the Transformer architecture and for what tasks?"
+  }
+  ```
 
-**Request body**
+- **Response `200 OK`**:
+  - `Content-Type: text/plain` (streamed text chunks)
+  - Citations are automatically formatted as bracketed entity names (e.g., `[Transformer]`, `[BERT]`), enabling the frontend to highlight matching nodes on the graph canvas.
 
-```json
-{
-  "message": "What are the shared methods across these papers?",
-  "nodes": [
-    { "name": "Attention Is All You Need", "type": "Paper" },
-    { "name": "Transformer", "type": "Method" }
-  ],
-  "edges": [
-    { "source": "Attention Is All You Need", "target": "Transformer", "type": "uses_method" }
-  ]
-}
-```
+---
 
-**200 Response**
+## User Workflow
 
-```text
-(streamed text/plain chunks)
-```
+1. **Process Papers**: Provide paths to research PDFs or initiate batch extraction. The system extracts text, indexes vector representations in ChromaDB, and populates Neo4j with extracted entities.
+2. **Explore the Graph**: Interact with the React Flow canvas. Filter by entity types (`Paper`, `Method`, `Claim`), zoom into dense clusters, and drag nodes to inspect connections.
+3. **Inspect Profiles**: Click on any `Paper` node to review its grounded 4-aspect synthesis (*Problem*, *Method*, *Results*, and *Limitations*).
+4. **Conduct Literature Q&A**: Use the chat panel to ask comparative questions across multiple papers. Click any highlighted citation chips in the response to immediately focus on that entity in the graph.
 
-**500 Response**
+---
 
-```json
-{
-  "detail": "<error message>"
-}
-```
+## Roadmap
 
-## 🗺️ Roadmap / Future Work
+- [ ] **Direct Multipart Upload UI**: Native drag-and-drop file upload endpoint supporting browser-based document ingestion without local absolute paths.
+- [ ] **Sub-Graph Neighborhood Querying**: Dynamic 1-to-2-hop subgraph extraction targeting only the specific entities retrieved by the user's question.
+- [ ] **Multi-Workspace Support**: Organization of graphs into distinct projects or domains.
+- [ ] **Citation Quality Evaluation**: Automated benchmarking against human literature reviews for faithfulness and hallucination metrics.
 
-- 🧭 Hybrid retrieval router (graph traversal + vector search)
-- 🗄️ Persistent graph storage (Neo4j migration)
-- 🧱 Vector database integration for long-context retrieval
-- 🔐 User authentication and project-level workspaces
-- 📈 Evaluation and benchmarking suite for cross-paper synthesis quality
+---
 
-## 📄 License
+## Contributing
 
-MIT License.
+Contributions, issues, and feature requests are welcome.
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/amazing-feature`).
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`).
+4. Push to the branch (`git push origin feature/amazing-feature`).
+5. Open a Pull Request.
+
+---
+
+## License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
