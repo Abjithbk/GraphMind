@@ -36,4 +36,11 @@ export const useGraphStore = create<GraphState>((set,get) => ({
       year: 'Unknown Year'
     }));
   },
+  clearGraph: () => set({
+    nodes: [],
+    edges: [],
+    papers: [],
+    selectedNode: null,
+    highlightedNode: null,
+  }),
 }));

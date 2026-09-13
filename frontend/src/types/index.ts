@@ -70,4 +70,21 @@ export interface GraphState {
   setSearchQuery: (query: string) => void;
   toggleFilter: (type: string) => void;
   getLoadedPapers: () => LoadedPaperSummary[];
+  clearGraph: () => void;
+}
+
+
+export type IngestionStepNumber = 1 | 2 | 3 | 4;
+
+export interface IngestionProgressEvent {
+  type: 'paper_start' | 'step' | 'paper_complete' | 'paper_error' | 'complete' | 'error';
+  paper?: string;
+  paper_index?: number;
+  total_papers?: number;
+  step?: IngestionStepNumber;
+  total_steps?: number;
+  name?: string;
+  message?: string;
+  error?: string;
+  result?: ExtractionResponse;
 }

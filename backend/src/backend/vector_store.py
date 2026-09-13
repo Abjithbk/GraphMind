@@ -41,3 +41,14 @@ def search_vector_store(query: str, paper_name: str | None = None, n_results: in
     if results and results["documents"]:
         return results["documents"][0]
     return []
+
+
+def clear_vector_store():
+    """Deletes and recreates the research_papers collection in ChromaDB."""
+    global collection
+    try:
+        client.delete_collection("research_papers")
+    except Exception as e:
+        print(f"Warning deleting Chroma collection: {e}")
+    collection = client.get_or_create_collection(name="research_papers", metadata={"hnsw:space": "cosine"})
+    print("🧹 Vector Store collection reset.")
