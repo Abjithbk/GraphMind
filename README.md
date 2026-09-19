@@ -1,4 +1,4 @@
-# Lit-GraphRAG: Academic Literature Review Assistant
+# GraphMind: Academic Literature Review Assistant
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3.2-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat&logo=react)](https://react.dev/)
@@ -17,7 +17,7 @@
 
 Traditional Retrieval-Augmented Generation (RAG) divides documents into arbitrary text chunks and retrieves isolated passages based on vector similarity. While effective for single-fact lookups, standard RAG struggles with synthesizing multi-paper corpora—it cannot easily answer structural questions such as *"Which methodologies are shared across Paper A and Paper B?"* or *"What claims directly challenge or extend prior work?"*.
 
-**Lit-GraphRAG** addresses this challenge by pairing **Graph Databases (Neo4j)** and **Vector Stores (ChromaDB)** with targeted LLM information extraction:
+**GraphMind** addresses this challenge by pairing **Graph Databases (Neo4j)** and **Vector Stores (ChromaDB)** with targeted LLM information extraction:
 
 1. **Entity and Relation Extraction**: Discovers `Paper`, `Method`, and `Claim` entities alongside typed semantic links (`uses_method`, `makes_claim`, `evaluates_on`).
 2. **Persistent Knowledge Graph**: Constructs a persistent knowledge network in Neo4j that can be rehydrated and explored interactively.
@@ -102,7 +102,7 @@ flowchart TD
 ## Repository Layout
 
 ```text
-lit-graphrag/
+GraphMind/
 ├── backend/
 │   ├── pyproject.toml              # Dependencies, build & Ruff configuration
 │   ├── .env.example                # Template for backend environment variables
