@@ -3,7 +3,7 @@
 import { 
   Upload, Network, Library, MessageSquare, FolderOpen, 
   Settings, User, CheckCircle2, Circle,
-  Loader2, ChevronDown, Sparkles,
+  Loader2, ChevronDown,
   Trash2, AlertTriangle,
   LucideIcon
 } from "lucide-react";
@@ -46,10 +46,10 @@ export function Sidebar() {
         description: "Neo4j graph and ChromaDB vectors have been cleared.",
         duration: 4000,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error("Failed to reset knowledge base", {
-        description: error?.message || "Please check backend connection.",
+        description: error instanceof Error ? error.message : "Please check backend connection.",
         duration: 4000,
       });
     } finally {
@@ -109,10 +109,10 @@ export function Sidebar() {
         duration: 4000
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error("Failed to process files.", {
-        description: error?.message || "Please check your console and ensure the backend is running.",
+        description: error instanceof Error ? error.message : "Please check your console and ensure the backend is running.",
         duration: 5000
       });
     } finally {
@@ -205,7 +205,6 @@ export function Sidebar() {
                 {INGESTION_STEPS.map((step) => {
                   const isDone = (progress?.step ?? 1) > step.id;
                   const isCurrent = (progress?.step ?? 1) === step.id;
-                  const isPending = (progress?.step ?? 1) < step.id;
 
                   return (
                     <div 
